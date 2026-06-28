@@ -1,6 +1,6 @@
 # 数星二级域名分发
 
-基于 PHP + MySQL 的二级域名分发管理系统，支持用户自助申请、管理员审核分配、DNS 服务商自动同步。
+基于 PHP + MySQL + Tailwind 的极为轻量化审核制二级域名分发管理系统，支持用户自助申请、管理员审核分配、DNS 服务商自动同步。
 
 ## 功能
 
@@ -63,6 +63,7 @@
 - MySQL 5.7+ / MariaDB 10.3+
 - PDO MySQL 扩展
 - cURL 扩展
+- Apache 1.20+
 - 服务器需 URL 重写指向 `index.php`
 
 ### 步骤
@@ -90,4 +91,4 @@
 
 ## 配置
 
-安装后编辑 `config/config.php` 可调整站点名称、SMTP、DNS 凭据、OAuth 等参数。
+安装后访问 `http://your-domain/admin/login/index.php` 可调整站点名称、SMTP、DNS 凭据、OAuth 等参数。
