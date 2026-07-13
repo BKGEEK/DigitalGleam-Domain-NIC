@@ -20,18 +20,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = '请完整填写注册信息。';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = '邮箱格式不正确。';
+    } elseif (!auth_validate_email_domain($email)) {
+        $error = '仅支持 gmail.com、qq.com、163.com、outlook.com 邮箱注册，不支持带 + 的别名邮箱。';
     } elseif ($password !== $passwordConfirm) {
         $error = '两次输入的密码不一致。';
     } elseif (auth_user_exists($username, $email)) {
         $error = '用户名或邮箱已存在。';
     } else {
         $result = auth_register_user($username, $email, $password);
-        $verifyLink = rtrim((auth_config()['app']['base_url'] ?? ''), '/') . '/user/register/verify.php?token=' . urlencode($result['token']);
-        $subject = '数星二级域名分发邮箱验证';
-        $html = mail_template(
-            '邮箱验证',
-            "你的注册验证码链接如下：\n{$verifyLink}\n\n该链接 24 小时内有效。"
-        );
+        $baseUrl = auth_config()['app']['base_url'] ?? '';
+        if ($baseUrl === '') {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $baseUrl = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        }
+        $verifyLink = rtrim($baseUrl, '/') . '/user/register/verify.php?token=' . urlencode($result['token']);
+        $rendered = mail_render_template('register', [
+            'username' => $username,
+            'verification_link' => $verifyLink,
+        ]);
+        $html = $rendered['html'];
+        $subject = $rendered['subject'];
         mail_send($email, $subject, $html);
         $message = '注册成功，请前往邮箱完成验证后再登录。';
     }

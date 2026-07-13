@@ -111,6 +111,10 @@ admin_dashboard_render('第三方登录', 'oauth', function () use ($oauth, $pro
                     在 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-brand-600 hover:text-brand-700">Google Cloud Console</a> 创建 OAuth 2.0 客户端 ID，授权重定向 URI 填写右侧的回调地址。
                 </li>
                 <li>
+                    <strong class="text-slate-800">NodeLoc OAuth App</strong><br>
+                    在 <a href="https://www.nodeloc.com/oauth-provider/applications" target="_blank" class="text-brand-600 hover:text-brand-700">NodeLoc OAuth 应用管理</a> 创建应用，Redirect URI 填写右侧的回调地址。如需获取用户邮箱，需要在 NodeLoc 申请审核。
+                </li>
+                <li>
                     <strong class="text-slate-800">启用条件</strong><br>
                     需同时填写 Client ID 和 Client Secret 并启用开关，前端才会显示对应的第三方登录按钮。
                 </li>

@@ -25,6 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Invalid email.');
         }
+        if ($data['email'] !== '' && !auth_validate_email_domain($data['email'])) {
+            throw new RuntimeException('仅支持 gmail.com、qq.com、163.com、outlook.com 邮箱，不支持带 + 的别名邮箱。');
+        }
         if ($data['whois_email'] !== '' && !filter_var($data['whois_email'], FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Invalid WHOIS email.');
         }

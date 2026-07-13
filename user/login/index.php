@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (!empty($oauthConfig['google']['enabled'])): ?>
                     <a href="/module/oauth/login.php?provider=google&return=/user/dashboard/" class="btn-secondary">Google 登录</a>
                 <?php endif; ?>
+                <?php if (!empty($oauthConfig['nodeloc']['enabled'])): ?>
+                    <a href="/module/oauth/login.php?provider=nodeloc&return=/user/dashboard/" class="btn-secondary">NodeLoc 登录</a>
+                <?php endif; ?>
             </div>
         </section>
 

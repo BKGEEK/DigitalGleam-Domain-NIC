@@ -83,6 +83,21 @@ function auth_user_has_whois(array $user): bool
     return !empty($user['whois_name']) && !empty($user['whois_phone']) && !empty($user['whois_email']);
 }
 
+function auth_allowed_email_domains(): array
+{
+    return ['gmail.com', 'qq.com', '163.com', 'outlook.com'];
+}
+
+function auth_validate_email_domain(string $email): bool
+{
+    $local = strstr($email, '@', true);
+    if ($local !== false && (str_contains($local, '+') || str_contains($local, '.'))) {
+        return false;
+    }
+    $domain = strtolower(substr(strrchr($email, '@'), 1));
+    return in_array($domain, auth_allowed_email_domains(), true);
+}
+
 function auth_user_whois_public(array $user): bool
 {
     return !empty($user['whois_public']);

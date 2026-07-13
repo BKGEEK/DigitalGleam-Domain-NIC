@@ -27,6 +27,7 @@ function oauth_provider_map(): array
     return [
         'github' => 'GitHub',
         'google' => 'Google',
+        'nodeloc' => 'NodeLoc',
     ];
 }
 
@@ -145,7 +146,7 @@ function oauth_http_request(string $method, string $url, array $payload = [], ar
 function oauth_authorize_url(string $provider, string $state): string
 {
     $config = oauth_provider_config($provider);
-    $redirectUri = $config['redirect_uri'] ?? oauth_callback_url($provider);
+    $redirectUri = ($config['redirect_uri'] ?? '') !== '' ? $config['redirect_uri'] : oauth_callback_url($provider);
     $scope = $config['scope'] ?? '';
 
     if ($provider === 'github') {
@@ -173,13 +174,25 @@ function oauth_authorize_url(string $provider, string $state): string
         return rtrim((string) ($config['authorize_url'] ?? 'https://accounts.google.com/o/oauth2/v2/auth'), '/') . '?' . $query;
     }
 
+    if ($provider === 'nodeloc') {
+        $query = http_build_query([
+            'client_id' => $config['client_id'] ?? '',
+            'redirect_uri' => $redirectUri,
+            'response_type' => 'code',
+            'scope' => $scope ?: 'openid profile email',
+            'state' => $state,
+        ]);
+
+        return rtrim((string) ($config['authorize_url'] ?? 'https://www.nodeloc.com/oauth-provider/authorize'), '/') . '?' . $query;
+    }
+
     throw new RuntimeException('Unsupported OAuth provider.');
 }
 
 function oauth_exchange_code(string $provider, string $code): array
 {
     $config = oauth_provider_config($provider);
-    $redirectUri = $config['redirect_uri'] ?? oauth_callback_url($provider);
+    $redirectUri = ($config['redirect_uri'] ?? '') !== '' ? $config['redirect_uri'] : oauth_callback_url($provider);
 
     if ($provider === 'github') {
         $response = oauth_http_request('POST', (string) ($config['token_url'] ?? 'https://github.com/login/oauth/access_token'), [
@@ -198,6 +211,22 @@ function oauth_exchange_code(string $provider, string $code): array
 
     if ($provider === 'google') {
         $response = oauth_http_request('POST', (string) ($config['token_url'] ?? 'https://oauth2.googleapis.com/token'), [
+            'client_id' => $config['client_id'] ?? '',
+            'client_secret' => $config['client_secret'] ?? '',
+            'code' => $code,
+            'redirect_uri' => $redirectUri,
+            'grant_type' => 'authorization_code',
+        ], [
+            'Accept: application/json',
+            'User-Agent: ' . ($config['user_agent'] ?? 'DomainDistributionOAuth'),
+        ]);
+
+        $body = json_decode($response['body'] ?? '', true);
+        return is_array($body) ? $body : [];
+    }
+
+    if ($provider === 'nodeloc') {
+        $response = oauth_http_request('POST', (string) ($config['token_url'] ?? 'https://www.nodeloc.com/oauth-provider/token'), [
             'client_id' => $config['client_id'] ?? '',
             'client_secret' => $config['client_secret'] ?? '',
             'code' => $code,
@@ -270,6 +299,25 @@ function oauth_fetch_profile(string $provider, string $accessToken): array
             'name' => (string) ($profile['name'] ?? ''),
             'avatar' => (string) ($profile['picture'] ?? ''),
             'email_verified' => !empty($profile['verified_email']) || !empty($profile['email_verified']),
+            'raw' => $profile,
+        ];
+    }
+
+    if ($provider === 'nodeloc') {
+        $response = oauth_http_request('GET', (string) ($config['user_url'] ?? 'https://www.nodeloc.com/oauth-provider/userinfo'), [], [
+            'Accept: application/json',
+            'Authorization: Bearer ' . $accessToken,
+            'User-Agent: ' . ($config['user_agent'] ?? 'DomainDistributionOAuth'),
+        ]);
+        $profile = json_decode($response['body'] ?? '', true);
+        $profile = is_array($profile) ? $profile : [];
+
+        return [
+            'provider_user_id' => (string) ($profile['id'] ?? ''),
+            'email' => (string) ($profile['email'] ?? ''),
+            'name' => (string) ($profile['name'] ?? $profile['username'] ?? ''),
+            'avatar' => (string) ($profile['avatar_url'] ?? ''),
+            'email_verified' => !empty($profile['email']),
             'raw' => $profile,
         ];
     }
@@ -398,6 +446,15 @@ function oauth_login_or_bind(string $provider, array $profile): int
 
     $email = trim((string) ($profile['email'] ?? ''));
     if ($email !== '') {
+        $local = strstr($email, '@', true);
+        if ($local !== false && (str_contains($local, '+') || str_contains($local, '.'))) {
+            throw new RuntimeException('不支持带 + 或 . 的别名邮箱登录。');
+        }
+        $allowed = ['gmail.com', 'qq.com', '163.com', 'outlook.com'];
+        $domain = strtolower(substr(strrchr($email, '@'), 1));
+        if (!in_array($domain, $allowed, true)) {
+            throw new RuntimeException('仅支持 gmail.com、qq.com、163.com、outlook.com 邮箱登录。');
+        }
         $user = oauth_user_by_email($email);
         if ($user) {
             oauth_link_account((int) $user['id'], $provider, $providerUserId, $email, (string) ($profile['name'] ?? ''), (string) ($profile['avatar'] ?? ''));

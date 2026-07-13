@@ -1,6 +1,7 @@
 ﻿<?php
 require __DIR__ . '/../layout.php';
 require_once __DIR__ . '/../../../resource/js/auth.php';
+require_once __DIR__ . '/../../../mail/mailer.php';
 
 $configPath = __DIR__ . '/../../../config/config.php';
 $config = require $configPath;
@@ -9,43 +10,54 @@ $site = $config['site'] ?? [];
 
 $error = '';
 $message = '';
+$testResult = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = $_POST['smtp'] ?? [];
+    $action = $_POST['action'] ?? 'save';
 
-    $newSmtp = [
-        'enabled' => true, // forced on for password recovery
-        'host' => trim($input['host'] ?? ''),
-        'port' => (int) ($input['port'] ?? 465),
-        'encryption' => trim($input['encryption'] ?? 'ssl'),
-        'username' => trim($input['username'] ?? ''),
-        'password' => (string) ($input['password'] ?? ''),
-        'from_email' => trim($input['from_email'] ?? ''),
-        'from_name' => trim($input['from_name'] ?? ''),
-        'reply_to' => trim($input['reply_to'] ?? ''),
-    ];
-
-    // Keep existing password if left blank
-    if ($newSmtp['password'] === '') {
-        $newSmtp['password'] = $smtp['password'] ?? '';
-    }
-
-    $newConfig = $config;
-    $newConfig['smtp'] = $newSmtp;
-    $newConfig['site']['email_verify'] = !empty($_POST['site']['email_verify']);
-
-    $export = "<?php\nreturn " . var_export($newConfig, true) . ";\n";
-    if (file_put_contents($configPath, $export) === false) {
-        $error = '配置文件写入失败。';
+    if ($action === 'test') {
+        $testEmail = trim($_POST['test_email'] ?? '');
+        if (!filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+            $testResult = ['success' => false, 'message' => '请输入有效的测试邮箱地址。'];
+        } else {
+            $testResult = mail_test($testEmail);
+        }
     } else {
-        $config = $newConfig;
-        $smtp = $newSmtp;
-        $site = $newConfig['site'];
-        $message = '邮件服务配置已保存。';
+        $input = $_POST['smtp'] ?? [];
+
+        $newSmtp = [
+            'enabled' => true,
+            'host' => trim($input['host'] ?? ''),
+            'port' => (int) ($input['port'] ?? 465),
+            'encryption' => trim($input['encryption'] ?? 'ssl'),
+            'username' => trim($input['username'] ?? ''),
+            'password' => (string) ($input['password'] ?? ''),
+            'from_email' => trim($input['from_email'] ?? ''),
+            'from_name' => trim($input['from_name'] ?? ''),
+            'reply_to' => trim($input['reply_to'] ?? ''),
+        ];
+
+        if ($newSmtp['password'] === '') {
+            $newSmtp['password'] = $smtp['password'] ?? '';
+        }
+
+        $newConfig = $config;
+        $newConfig['smtp'] = $newSmtp;
+        $newConfig['site']['email_verify'] = !empty($_POST['site']['email_verify']);
+
+        $export = "<?php\nreturn " . var_export($newConfig, true) . ";\n";
+        if (file_put_contents($configPath, $export) === false) {
+            $error = '配置文件写入失败。';
+        } else {
+            $config = $newConfig;
+            $smtp = $newSmtp;
+            $site = $newConfig['site'];
+            $message = '邮件服务配置已保存。';
+        }
     }
 }
 
-admin_dashboard_render('邮件服务', 'smtp', function () use ($smtp, $site, $error, $message): void {
+admin_dashboard_render('邮件服务', 'smtp', function () use ($smtp, $site, $error, $message, $testResult): void {
     ?>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
@@ -130,6 +142,26 @@ admin_dashboard_render('邮件服务', 'smtp', function () use ($smtp, $site, $e
                     SMTP 密码留空会自动保留原有值，避免每次保存时覆盖。
                 </li>
             </ul>
+
+            <hr class="my-6 border-slate-200">
+
+            <h2 class="text-xl font-semibold text-slate-900">发送测试邮件</h2>
+            <p class="mt-3 text-sm text-slate-600">保存配置后，可发送测试邮件验证 SMTP 是否正常工作。</p>
+
+            <?php if ($testResult): ?>
+                <div class="mt-4 rounded-2xl border px-4 py-3 text-sm <?= $testResult['success'] ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700' ?>">
+                    <?= htmlspecialchars($testResult['message']) ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" class="mt-4">
+                <input type="hidden" name="action" value="test">
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">收件邮箱</label>
+                    <input type="email" name="test_email" required placeholder="you@example.com" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                </div>
+                <button type="submit" class="btn-primary mt-4 w-full justify-center">发送测试邮件</button>
+            </form>
         </section>
     </div>
     <?php

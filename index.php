@@ -28,7 +28,7 @@ if ($prefix !== '' && $selectedRootId > 0) {
             'candidate' => $candidate,
             'root_domain' => $root['root_domain'],
             'provider' => dns_provider_label((string) $root['provider']),
-            'available' => $matched === null,
+            'available' => $matched === null && !str_contains($prefix, '.'),
         ];
     }
 }
@@ -118,7 +118,7 @@ if ($stmt && ($row = $stmt->fetch())) {
         <!-- 域名检索区域 -->
         <section id="domain" class="border-b border-slate-200 bg-white">
             <div class="page-wrap py-12">
-                <div class="max-w-3xl">
+                <div class="mx-auto max-w-3xl">
                     <div class="text-sm font-medium text-brand-600"><?= htmlspecialchars($config['app']['name'] ?? '数星二级域名分发') ?></div>
                     <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900">域名前缀可用性检索</h1>
                     <p class="mt-4 text-sm leading-6 text-slate-600">输入前缀，选择已配置的主域名后缀，系统会检查该组合是否已在域名池中存在。</p>
@@ -151,7 +151,13 @@ if ($stmt && ($row = $stmt->fetch())) {
                             </div>
                             <div class="mt-4">
                                 <span class="rounded-full px-3 py-1 text-xs font-medium <?= $searchResult['available'] ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
-                                    <?= $searchResult['available'] ? '可用' : '已占用' ?>
+                                    <?php if (str_contains($prefix, '.')): ?>
+                                        不支持多级域名
+                                    <?php elseif ($searchResult['available']): ?>
+                                        可用
+                                    <?php else: ?>
+                                        已占用
+                                    <?php endif; ?>
                                 </span>
                             </div>
                         </div>

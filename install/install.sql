@@ -103,15 +103,25 @@ CREATE TABLE IF NOT EXISTS `domain_requests` (
 CREATE TABLE IF NOT EXISTS `ns_records` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `domain_id` BIGINT UNSIGNED NOT NULL COMMENT '关联 domains.id',
-  `nameserver` VARCHAR(255) NOT NULL COMMENT 'NS 记录值，如 ns1.example.com',
-  `sort_order` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序 0-4',
-  `provider_record_id` VARCHAR(64) DEFAULT NULL COMMENT 'DNS服务商记录ID',
+  `nameserver` VARCHAR(255) NOT NULL COMMENT 'NS 记录值',
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `provider_record_id` VARCHAR(255) DEFAULT NULL COMMENT 'DNS 服务商记录 ID',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ns_domain_nameserver` (`domain_id`, `nameserver`),
   KEY `idx_ns_domain_id` (`domain_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='域名NS记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='NS 记录表';
+
+CREATE TABLE IF NOT EXISTS `txt_records` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `domain_id` BIGINT UNSIGNED NOT NULL COMMENT '关联 domains.id',
+  `value` VARCHAR(255) NOT NULL COMMENT 'TXT 记录值',
+  `provider_record_id` VARCHAR(255) DEFAULT NULL COMMENT 'DNS 服务商记录 ID',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_txt_domain_id` (`domain_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TXT 记录表';
 
 CREATE TABLE IF NOT EXISTS `announcements` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

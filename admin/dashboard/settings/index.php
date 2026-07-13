@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require __DIR__ . '/../layout.php';
 require_once __DIR__ . '/../../../resource/js/auth.php';
 
@@ -72,8 +72,7 @@ admin_dashboard_render('系统设置', 'settings', function () use ($config, $er
                 </div>
 
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">站点公告</label>
-                    <textarea name="site[notice]" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"><?= htmlspecialchars($config['site']['notice'] ?? '') ?></textarea>
+                    
                 </div>
 
                 <div class="flex items-center gap-3">

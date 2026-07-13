@@ -25,6 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Please fill all fields.');
             }
 
+            if (str_contains($subdomain, '.')) {
+                throw new RuntimeException('仅支持二级域名，子域名前缀不能包含点号（.）。');
+            }
+
             $root = dns_root_domain_by_id($rootDomainId);
             if (!$root || (int) $root['status'] !== 1) {
                 throw new RuntimeException('Selected root domain is unavailable.');
@@ -60,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('This domain is no longer available.' . $reason);
             }
 
-            $stmt = $pdo->prepare('INSERT INTO domain_requests (user_id, domain_id, requested_domain, purpose, remark, status, created_at, updated_at) VALUES (:user_id, :domain_id, :requested_domain, :purpose, :remark, 1, NOW(), NOW())');
+            $stmt = $pdo->prepare('INSERT INTO domain_requests (user_id, domain_id, requested_domain, purpose, remark, status, created_at, updated_at) VALUES (:user_id, :domain_id, :requested_domain, :purpose, :remark, 2, NOW(), NOW())');
             $stmt->execute([
                 ':user_id' => $userId,
                 ':domain_id' => (int) $domain['id'],
@@ -69,8 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':remark' => $remark,
             ]);
 
-            $stmt = $pdo->prepare('UPDATE domains SET status = 3, updated_at = NOW() WHERE id = :id');
-            $stmt->execute([':id' => (int) $domain['id']]);
+            $stmt = $pdo->prepare('UPDATE domains SET status = 2, assigned_to = :assigned_to, updated_at = NOW() WHERE id = :id');
+            $stmt->execute([':id' => (int) $domain['id'], ':assigned_to' => $userId]);
 
             $pdo->commit();
             $message = 'Submitted.';

@@ -69,12 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $domains = dns_api_domain_list($selectedRootId > 0 ? $selectedRootId : null);
 if ($editId > 0) {
-    foreach ($domains as $row) {
-        if ((int) $row['id'] === $editId) {
-            $editRow = $row;
-            break;
-        }
-    }
+    $pdo = dns_db();
+    $stmt = $pdo->prepare('SELECT d.*, r.root_domain, r.provider AS root_provider FROM domains d INNER JOIN root_domains r ON r.id = d.root_domain_id WHERE d.id = :id LIMIT 1');
+    $stmt->execute([':id' => $editId]);
+    $editRow = $stmt->fetch();
 }
 
 admin_dashboard_render('域名池管理', 'domains', function () use ($domains, $rootDomains, $selectedRootId, $error, $message, $editRow): void {
@@ -118,7 +116,7 @@ admin_dashboard_render('域名池管理', 'domains', function () use ($domains, 
                                 <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars((string) ($row['assigned_to'] ?? '')) ?></td>
                                 <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['remark'] ?? '') ?></td>
                                 <td class="px-4 py-3 space-x-3">
-                                    <a href="?edit=<?= (int) $row['id'] ?>&root_domain_id=<?= (int) $row['root_domain_id'] ?>" class="text-sm font-medium text-brand-700 hover:text-brand-800">编辑</a>
+                                    <a href="?edit=<?= (int) $row['id'] ?>&amp;root_domain_id=<?= (int) $row['root_domain_id'] ?>" class="text-sm font-medium text-brand-700 hover:text-brand-800">编辑</a>
                                     <form method="post" class="inline">
                                         <input type="hidden" name="action" value="toggle">
                                         <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

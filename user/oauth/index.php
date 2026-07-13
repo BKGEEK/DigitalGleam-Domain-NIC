@@ -48,6 +48,9 @@ user_render('OAuth 绑定', 'oauth', function () use ($oauthConfig, $accounts, $
                 <?php if (!empty($oauthConfig['google']['enabled'])): ?>
                     <a href="/module/oauth/login.php?provider=google&return=/user/oauth/" class="btn-secondary">绑定 Google</a>
                 <?php endif; ?>
+                <?php if (!empty($oauthConfig['nodeloc']['enabled'])): ?>
+                    <a href="/module/oauth/login.php?provider=nodeloc&return=/user/oauth/" class="btn-secondary">绑定 NodeLoc</a>
+                <?php endif; ?>
             </div>
 
             <div class="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white">

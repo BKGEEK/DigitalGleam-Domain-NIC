@@ -19,6 +19,7 @@ function admin_dashboard_menu(): array
         ['label' => '公告管理', 'path' => '/admin/dashboard/announcements/', 'key' => 'announcements'],
         ['label' => '系统设置', 'path' => '/admin/dashboard/settings/', 'key' => 'settings'],
         ['label' => '邮件服务', 'path' => '/admin/dashboard/smtp/', 'key' => 'smtp'],
+        ['label' => '邮件模板', 'path' => '/admin/dashboard/email-templates/', 'key' => 'email-templates'],
         ['label' => 'DNS 接口', 'path' => '/admin/dashboard/dns/', 'key' => 'dns'],
         ['label' => '第三方登录', 'path' => '/admin/dashboard/oauth/', 'key' => 'oauth'],
     ];

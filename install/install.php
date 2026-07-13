@@ -64,6 +64,75 @@ function install_write_config(array $db): bool
             'charset' => 'utf8mb4',
             'prefix' => '',
         ],
+        'site' => [
+            'status' => 1,
+            'notice' => '欢迎使用数星二级域名分发系统。',
+        ],
+        'smtp' => [
+            'enabled' => false,
+            'host' => 'smtp.example.com',
+            'port' => 465,
+            'encryption' => 'ssl',
+            'username' => 'no-reply@example.com',
+            'password' => '',
+            'from_email' => 'no-reply@example.com',
+            'from_name' => '数星二级域名分发',
+            'reply_to' => 'support@example.com',
+        ],
+        'dns' => [
+            'alidns' => [
+                'enabled' => false,
+                'access_key_id' => '',
+                'access_key_secret' => '',
+                'endpoint' => 'alidns.cn-hangzhou.aliyuncs.com',
+            ],
+            'cloudflare' => [
+                'enabled' => false,
+                'api_token' => '',
+                'account_id' => '',
+            ],
+            'dnsla' => [
+                'enabled' => false,
+                'api_base_url' => 'https://api.dns.la',
+                'api_id' => '',
+                'api_secret' => '',
+            ],
+            'dnspod' => [
+                'enabled' => false,
+                'secret_id' => '',
+                'secret_key' => '',
+            ],
+            'powerdns' => [
+                'enabled' => false,
+                'api_key' => '',
+                'server_url' => '',
+            ],
+        ],
+        'oauth' => [
+            'github' => [
+                'enabled' => false,
+                'client_id' => '',
+                'client_secret' => '',
+                'redirect_uri' => '',
+                'scope' => 'read:user user:email',
+                'authorize_url' => 'https://github.com/login/oauth/authorize',
+                'token_url' => 'https://github.com/login/oauth/access_token',
+                'user_url' => 'https://api.github.com/user',
+                'email_url' => 'https://api.github.com/user/emails',
+                'user_agent' => 'DomainDistributionOAuth',
+            ],
+            'google' => [
+                'enabled' => false,
+                'client_id' => '',
+                'client_secret' => '',
+                'redirect_uri' => '',
+                'scope' => 'openid email profile',
+                'authorize_url' => 'https://accounts.google.com/o/oauth2/v2/auth',
+                'token_url' => 'https://oauth2.googleapis.com/token',
+                'user_url' => 'https://www.googleapis.com/oauth2/v2/userinfo',
+                'user_agent' => 'DomainDistributionOAuth',
+            ],
+        ],
     ];
 
     $export = "<?php\nreturn " . var_export($config, true) . ";\n";

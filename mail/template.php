@@ -9,3 +9,39 @@ function mail_template(string $title, string $content): string
         </div>
     ';
 }
+
+function mail_template_config(): array
+{
+    $config = require __DIR__ . '/../config/config.php';
+    return $config['email_templates'] ?? [];
+}
+
+function mail_render_template(string $type, array $variables = []): array
+{
+    $templates = mail_template_config();
+    $subject = $templates[$type . '_subject'] ?? '';
+    $body = $templates[$type . '_body'] ?? '';
+
+    $config = require __DIR__ . '/../config/config.php';
+    $siteName = $config['app']['name'] ?? '';
+
+    $allowed = [
+        '{site_name}' => $siteName,
+        '{username}' => $variables['username'] ?? '',
+    ];
+
+    $protected = ['{verification_link}'];
+    $link = $variables['verification_link'] ?? '';
+
+    foreach ($allowed as $placeholder => $value) {
+        $subject = str_replace($placeholder, $value, $subject);
+        $body = str_replace($placeholder, $value, $body);
+    }
+
+    $body = str_replace('{verification_link}', $link, $body);
+
+    return [
+        'subject' => $subject,
+        'html' => $body,
+    ];
+}
