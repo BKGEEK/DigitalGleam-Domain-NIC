@@ -17,6 +17,7 @@
   - AAAA 记录上限（默认 10）
   - CNAME 记录上限（默认 10）
   - 设为 0 表示不限制
+- **DNS 记录类型开关**：后台「系统设置」新增「DNS 记录类型开关」区域，可分别启用/禁用 NS、TXT、A、AAAA、CNAME 记录类型（默认全部开启）
 - **Cloudflare CDN 开关（小黄云）**：当域名服务商为 Cloudflare 时，添加 DNS 记录可勾选「开启 CDN」选项，自动同步 `proxied` 参数到 Cloudflare
 - 新增数据库表 `dns_records`，安装 SQL 和更新日志中附有建表语句
 ### 数据库变更
