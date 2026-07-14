@@ -10,6 +10,7 @@ $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $app = $_POST['app'] ?? [];
     $site = $_POST['site'] ?? [];
+    $domain = $_POST['domain'] ?? [];
 
     $newConfig = [
         'app' => [
@@ -22,6 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site' => [
             'status' => !empty($site['status']) ? 1 : 0,
             'notice' => trim($site['notice'] ?? ''),
+        ],
+        'domain' => [
+            'min_length' => max(1, (int) ($domain['min_length'] ?? 3)),
+            'max_length' => max(1, (int) ($domain['max_length'] ?? 24)),
+            'allow_unicode' => !empty($domain['allow_unicode']),
         ],
         'smtp' => $config['smtp'],
         'dns' => $config['dns'],
@@ -78,6 +84,26 @@ admin_dashboard_render('系统设置', 'settings', function () use ($config, $er
                 <div class="flex items-center gap-3">
                     <input type="checkbox" name="site[status]" value="1" <?= !empty($config['site']['status']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
                     <span class="text-sm text-slate-700">站点开启</span>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <h3 class="text-lg font-semibold text-slate-900">域名申请限制</h3>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">前缀最小长度</label>
+                        <input name="domain[min_length]" type="number" min="1" value="<?= (int) ($config['domain']['min_length'] ?? 3) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">前缀最大长度</label>
+                        <input name="domain[max_length]" type="number" min="1" value="<?= (int) ($config['domain']['max_length'] ?? 24) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="domain[allow_unicode]" value="1" <?= !empty($config['domain']['allow_unicode']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                    <span class="text-sm text-slate-700">允许特殊 Unicode 字符（汉字、emoji 等）</span>
                 </div>
 
                 <button type="submit" class="btn-primary">保存设置</button>

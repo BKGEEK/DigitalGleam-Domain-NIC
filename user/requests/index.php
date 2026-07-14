@@ -1,6 +1,11 @@
 ﻿<?php
 require __DIR__ . '/../layout.php';
 
+$domainConfig = (require __DIR__ . '/../../config/config.php')['domain'] ?? [];
+$minLength = max(1, (int) ($domainConfig['min_length'] ?? 3));
+$maxLength = max(1, (int) ($domainConfig['max_length'] ?? 24));
+$allowUnicode = !empty($domainConfig['allow_unicode']);
+
 $pdo = auth_db();
 $error = '';
 $message = '';
@@ -27,6 +32,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (str_contains($subdomain, '.')) {
                 throw new RuntimeException('仅支持二级域名，子域名前缀不能包含点号（.）。');
+            }
+
+            if (!$allowUnicode && !preg_match('/^[a-zA-Z0-9]+$/', $subdomain)) {
+                throw new RuntimeException('子域名前缀只能包含字母和数字。');
+            }
+
+            if (mb_strlen($subdomain) > $maxLength) {
+                throw new RuntimeException("子域名前缀不能超过 {$maxLength} 个字符。");
+            }
+
+            if (mb_strlen($subdomain) < $minLength) {
+                throw new RuntimeException("子域名前缀不能少于 {$minLength} 个字符。");
             }
 
             $root = dns_root_domain_by_id($rootDomainId);

@@ -4,6 +4,11 @@ require_once __DIR__ . '/module/dns/service.php';
 $config = require __DIR__ . '/config/config.php';
 $pageTitle = $config['app']['name'] ?? '数星二级域名分发';
 
+$domainConfig = $config['domain'] ?? [];
+$minLength = max(1, (int) ($domainConfig['min_length'] ?? 3));
+$maxLength = max(1, (int) ($domainConfig['max_length'] ?? 24));
+$allowUnicode = !empty($domainConfig['allow_unicode']);
+
 $prefix = trim((string) ($_GET['prefix'] ?? ''));
 $selectedRootId = (int) ($_GET['root_domain_id'] ?? 0);
 $availableRoots = dns_root_domains(true);
@@ -24,11 +29,30 @@ if ($prefix !== '' && $selectedRootId > 0) {
             }
         }
 
+        $hasDot = str_contains($prefix, '.');
+        $invalidChars = !$allowUnicode && !preg_match('/^[a-zA-Z0-9]+$/', $prefix);
+        $tooLong = mb_strlen($prefix) > $maxLength;
+        $tooShort = mb_strlen($prefix) < $minLength;
+
+        if ($hasDot) {
+            $status = 'has_dot';
+        } elseif ($invalidChars) {
+            $status = 'invalid_chars';
+        } elseif ($tooShort) {
+            $status = 'too_short';
+        } elseif ($tooLong) {
+            $status = 'too_long';
+        } elseif ($matched !== null) {
+            $status = 'occupied';
+        } else {
+            $status = 'available';
+        }
+
         $searchResult = [
             'candidate' => $candidate,
             'root_domain' => $root['root_domain'],
             'provider' => dns_provider_label((string) $root['provider']),
-            'available' => $matched === null && !str_contains($prefix, '.'),
+            'status' => $status,
         ];
     }
 }
@@ -150,14 +174,15 @@ if ($stmt && ($row = $stmt->fetch())) {
                                 主域名：<?= htmlspecialchars($searchResult['root_domain']) ?>，Provider：<?= htmlspecialchars($searchResult['provider']) ?>
                             </div>
                             <div class="mt-4">
-                                <span class="rounded-full px-3 py-1 text-xs font-medium <?= $searchResult['available'] ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
-                                    <?php if (str_contains($prefix, '.')): ?>
-                                        不支持多级域名
-                                    <?php elseif ($searchResult['available']): ?>
-                                        可用
-                                    <?php else: ?>
-                                        已占用
-                                    <?php endif; ?>
+                                <span class="rounded-full px-3 py-1 text-xs font-medium <?= $searchResult['status'] === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
+                                    <?= match ($searchResult['status']) {
+                                        'has_dot' => '不支持多级域名',
+                                        'invalid_chars' => '前缀只能包含字母和数字',
+                                        'too_short' => "前缀不能少于 {$minLength} 个字符",
+                                        'too_long' => "前缀不能超过 {$maxLength} 个字符",
+                                        'occupied' => '已占用',
+                                        'available' => '可用',
+                                    } ?>
                                 </span>
                             </div>
                         </div>

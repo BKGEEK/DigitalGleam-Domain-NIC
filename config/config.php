@@ -24,6 +24,12 @@ return array (
     'notice' => '欢迎使用数星二级域名分发系统。',
     'email_verify' => false,
   ),
+  'domain' => 
+  array (
+    'min_length' => 3,
+    'max_length' => 24,
+    'allow_unicode' => false,
+  ),
   'email_templates' => 
   array (
     'register_subject' => '{site_name} - 邮箱验证',
