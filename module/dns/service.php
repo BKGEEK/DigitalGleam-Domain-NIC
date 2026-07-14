@@ -153,6 +153,10 @@ function dns_ns_record_add(int $domainId, string $nameserver): array
         return ['success' => false, 'message' => 'NS 记录值不能为空'];
     }
 
+    if (empty(dns_domain_record_config()['enable_ns_records'])) {
+        return ['success' => false, 'message' => 'NS 记录类型已禁用'];
+    }
+
     $pdo = dns_db();
 
     $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM ns_records WHERE domain_id = :domain_id');
@@ -509,6 +513,10 @@ function dns_txt_record_add(int $domainId, string $value): array
         return ['success' => false, 'message' => 'TXT 记录值不能为空'];
     }
 
+    if (empty(dns_domain_record_config()['enable_txt_records'])) {
+        return ['success' => false, 'message' => 'TXT 记录类型已禁用'];
+    }
+
     $pdo = dns_db();
 
     $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM txt_records WHERE domain_id = :domain_id');
@@ -764,6 +772,14 @@ function dns_record_add(int $domainId, string $type, string $name, string $value
     if (!in_array($type, ['A', 'AAAA', 'CNAME'], true)) {
         return ['success' => false, 'message' => '不支持的记录类型'];
     }
+
+    $config = dns_domain_record_config();
+    $enableKey = 'enable_' . strtolower($type) . '_records';
+    $config = dns_domain_record_config();
+    if (empty($config[$enableKey])) {
+        return ['success' => false, 'message' => "{$type} 记录类型已禁用"];
+    }
+
     if ($name === '') {
         return ['success' => false, 'message' => '记录名称不能为空'];
     }
@@ -773,7 +789,6 @@ function dns_record_add(int $domainId, string $type, string $name, string $value
 
     $pdo = dns_db();
 
-    $config = dns_domain_record_config();
     $typeLimitKey = 'max_' . strtolower($type) . '_records';
     $maxType = (int) ($config[$typeLimitKey] ?? 10);
 

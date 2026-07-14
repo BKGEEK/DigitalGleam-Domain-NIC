@@ -33,9 +33,14 @@ return array (
     'max_domains_per_user' => 3,
     'max_ns_records' => 5,
     'max_txt_records' => 3,
+    'enable_ns_records' => true,
+    'enable_txt_records' => true,
     'max_a_records' => 10,
     'max_aaaa_records' => 10,
     'max_cname_records' => 10,
+    'enable_a_records' => true,
+    'enable_aaaa_records' => true,
+    'enable_cname_records' => true,
   ),
   'email_templates' => 
   array (

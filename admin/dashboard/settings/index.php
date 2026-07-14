@@ -32,9 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'max_domains_per_user' => max(0, (int) ($domain['max_domains_per_user'] ?? 3)),
             'max_ns_records' => max(0, (int) ($domain['max_ns_records'] ?? 5)),
             'max_txt_records' => max(0, (int) ($domain['max_txt_records'] ?? 3)),
+            'enable_ns_records' => !empty($domain['enable_ns_records']),
+            'enable_txt_records' => !empty($domain['enable_txt_records']),
             'max_a_records' => max(0, (int) ($domain['max_a_records'] ?? 10)),
             'max_aaaa_records' => max(0, (int) ($domain['max_aaaa_records'] ?? 10)),
             'max_cname_records' => max(0, (int) ($domain['max_cname_records'] ?? 10)),
+            'enable_a_records' => !empty($domain['enable_a_records']),
+            'enable_aaaa_records' => !empty($domain['enable_aaaa_records']),
+            'enable_cname_records' => !empty($domain['enable_cname_records']),
         ],
         'smtp' => $config['smtp'],
         'dns' => $config['dns'],
@@ -146,6 +151,31 @@ admin_dashboard_render('系统设置', 'settings', function () use ($config, $er
                     <div>
                         <label class="mb-2 block text-sm font-medium text-slate-700">CNAME 记录上限</label>
                         <input name="domain[max_cname_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_cname_records'] ?? 10) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-slate-900 mt-6">DNS 记录类型开关</h3>
+
+                <div class="flex flex-wrap items-center gap-6">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="domain[enable_ns_records]" value="1" <?= !empty($config['domain']['enable_ns_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                        <span class="text-sm text-slate-700">允许用户使用 NS 记录</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="domain[enable_txt_records]" value="1" <?= !empty($config['domain']['enable_txt_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                        <span class="text-sm text-slate-700">允许用户使用 TXT 记录</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="domain[enable_a_records]" value="1" <?= !empty($config['domain']['enable_a_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                        <span class="text-sm text-slate-700">允许用户使用 A 记录</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="domain[enable_aaaa_records]" value="1" <?= !empty($config['domain']['enable_aaaa_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                        <span class="text-sm text-slate-700">允许用户使用 AAAA 记录</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="domain[enable_cname_records]" value="1" <?= !empty($config['domain']['enable_cname_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                        <span class="text-sm text-slate-700">允许用户使用 CNAME 记录</span>
                     </div>
                 </div>
 

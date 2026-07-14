@@ -10,6 +10,11 @@ $maxTxtRecords = (int) ($recordConfig['max_txt_records'] ?? 3);
 $maxARecords = (int) ($recordConfig['max_a_records'] ?? 10);
 $maxAaaaRecords = (int) ($recordConfig['max_aaaa_records'] ?? 10);
 $maxCnameRecords = (int) ($recordConfig['max_cname_records'] ?? 10);
+$enableNsRecords = !empty($recordConfig['enable_ns_records']);
+$enableTxtRecords = !empty($recordConfig['enable_txt_records']);
+$enableARecords = !empty($recordConfig['enable_a_records']);
+$enableAaaaRecords = !empty($recordConfig['enable_aaaa_records']);
+$enableCnameRecords = !empty($recordConfig['enable_cname_records']);
 
 $message = $_GET['message'] ?? '';
 $messageType = $_GET['type'] ?? 'success';
@@ -100,7 +105,7 @@ $title = $manageDomain ? ($manageType === 'ns' ? 'NS' : ($manageType === 'txt' ?
 $activeKey = 'domains';
 $isCloudflare = $manageDomain && $manageDomain['provider'] === 'cloudflare';
 
-user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDomainId, $manageType, $nsRecords, $txtRecords, $dnsRecords, $message, $messageType, $isCloudflare, $maxNsRecords, $maxTxtRecords, $maxARecords, $maxAaaaRecords, $maxCnameRecords, $pdo, $userId): void {
+user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDomainId, $manageType, $nsRecords, $txtRecords, $dnsRecords, $message, $messageType, $isCloudflare, $maxNsRecords, $maxTxtRecords, $maxARecords, $maxAaaaRecords, $maxCnameRecords, $enableNsRecords, $enableTxtRecords, $enableARecords, $enableAaaaRecords, $enableCnameRecords, $pdo, $userId): void {
     ?>
     <section class="panel">
         <?php if ($manageDomain && $manageType === 'ns'): ?>
@@ -279,10 +284,16 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                             $t = strtoupper($dr['type']);
                             if (isset($counts[$t])) $counts[$t]++;
                         }
-                        ?>
-                        <span>A: <?= $counts['A'] ?>/<?= $maxARecords <= 0 ? '∞' : $maxARecords ?></span>
-                        <span>AAAA: <?= $counts['AAAA'] ?>/<?= $maxAaaaRecords <= 0 ? '∞' : $maxAaaaRecords ?></span>
-                        <span>CNAME: <?= $counts['CNAME'] ?>/<?= $maxCnameRecords <= 0 ? '∞' : $maxCnameRecords ?></span>
+                        $typeLabels = [
+                            'A' => ['enabled' => $enableARecords, 'max' => $maxARecords],
+                            'AAAA' => ['enabled' => $enableAaaaRecords, 'max' => $maxAaaaRecords],
+                            'CNAME' => ['enabled' => $enableCnameRecords, 'max' => $maxCnameRecords],
+                        ];
+                        foreach ($typeLabels as $t => $cfg): ?>
+                            <?php if ($cfg['enabled']): ?>
+                                <span><?= $t ?>: <?= $counts[$t] ?>/<?= $cfg['max'] <= 0 ? '∞' : $cfg['max'] ?></span>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -353,6 +364,7 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
 
             <?php
             $typeLimits = ['A' => $maxARecords, 'AAAA' => $maxAaaaRecords, 'CNAME' => $maxCnameRecords];
+            $typeEnabled = ['A' => $enableARecords, 'AAAA' => $enableAaaaRecords, 'CNAME' => $enableCnameRecords];
             $typeCounts = ['A' => 0, 'AAAA' => 0, 'CNAME' => 0];
             foreach ($dnsRecords as $dr) {
                 $t = strtoupper($dr['type']);
@@ -360,7 +372,7 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
             }
             $canAdd = false;
             foreach ($typeLimits as $t => $limit) {
-                if ($limit <= 0 || $typeCounts[$t] < $limit) { $canAdd = true; break; }
+                if ($typeEnabled[$t] && ($limit <= 0 || $typeCounts[$t] < $limit)) { $canAdd = true; break; }
             }
             ?>
             <?php if ($canAdd): ?>
@@ -372,9 +384,9 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                         <div class="flex-1">
                             <label class="block text-sm font-medium text-slate-700">类型</label>
                             <select name="dns_type" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                                <option value="A">A</option>
-                                <option value="AAAA">AAAA</option>
-                                <option value="CNAME">CNAME</option>
+                                <?php if ($enableARecords): ?><option value="A">A</option><?php endif; ?>
+                                <?php if ($enableAaaaRecords): ?><option value="AAAA">AAAA</option><?php endif; ?>
+                                <?php if ($enableCnameRecords): ?><option value="CNAME">CNAME</option><?php endif; ?>
                             </select>
                         </div>
                         <div class="flex-1">
@@ -427,10 +439,14 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                 <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars(match ((int) $row['status']) {1 => '空闲', 2 => '使用中', 3 => '审核中', 0 => '停用', default => '未知'}) ?></td>
                                 <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['remark'] ?? '') ?></td>
                                 <td class="px-4 py-3">
-                                    <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">NS 管理</a>
-                                    <span class="mx-2 text-slate-300">|</span>
-                                    <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">TXT 管理</a>
-                                    <span class="mx-2 text-slate-300">|</span>
+                                    <?php if ($enableNsRecords): ?>
+                                        <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">NS 管理</a>
+                                        <span class="mx-2 text-slate-300">|</span>
+                                    <?php endif; ?>
+                                    <?php if ($enableTxtRecords): ?>
+                                        <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">TXT 管理</a>
+                                        <span class="mx-2 text-slate-300">|</span>
+                                    <?php endif; ?>
                                     <a href="/user/domains/?manage_dns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">DNS 管理</a>
                                 </td>
                             </tr>
