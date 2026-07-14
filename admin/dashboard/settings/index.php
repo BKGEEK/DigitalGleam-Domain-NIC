@@ -28,6 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'min_length' => max(1, (int) ($domain['min_length'] ?? 3)),
             'max_length' => max(1, (int) ($domain['max_length'] ?? 24)),
             'allow_unicode' => !empty($domain['allow_unicode']),
+            'auto_approve' => !empty($domain['auto_approve']),
+            'max_domains_per_user' => max(0, (int) ($domain['max_domains_per_user'] ?? 3)),
+            'max_ns_records' => max(0, (int) ($domain['max_ns_records'] ?? 5)),
+            'max_txt_records' => max(0, (int) ($domain['max_txt_records'] ?? 3)),
+            'max_a_records' => max(0, (int) ($domain['max_a_records'] ?? 10)),
+            'max_aaaa_records' => max(0, (int) ($domain['max_aaaa_records'] ?? 10)),
+            'max_cname_records' => max(0, (int) ($domain['max_cname_records'] ?? 10)),
         ],
         'smtp' => $config['smtp'],
         'dns' => $config['dns'],
@@ -99,11 +106,47 @@ admin_dashboard_render('系统设置', 'settings', function () use ($config, $er
                         <label class="mb-2 block text-sm font-medium text-slate-700">前缀最大长度</label>
                         <input name="domain[max_length]" type="number" min="1" value="<?= (int) ($config['domain']['max_length'] ?? 24) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                     </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">每人最大域名数</label>
+                        <input name="domain[max_domains_per_user]" type="number" min="0" value="<?= (int) ($config['domain']['max_domains_per_user'] ?? 3) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <input type="checkbox" name="domain[allow_unicode]" value="1" <?= !empty($config['domain']['allow_unicode']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
                     <span class="text-sm text-slate-700">允许特殊 Unicode 字符（汉字、emoji 等）</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="domain[auto_approve]" value="1" <?= !empty($config['domain']['auto_approve']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
+                    <span class="text-sm text-slate-700">域名申请自动通过</span>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <h3 class="text-lg font-semibold text-slate-900">DNS 记录数量限制</h3>
+
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">NS 记录上限</label>
+                        <input name="domain[max_ns_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_ns_records'] ?? 5) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">TXT 记录上限</label>
+                        <input name="domain[max_txt_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_txt_records'] ?? 3) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">A 记录上限</label>
+                        <input name="domain[max_a_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_a_records'] ?? 10) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">AAAA 记录上限</label>
+                        <input name="domain[max_aaaa_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_aaaa_records'] ?? 10) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">CNAME 记录上限</label>
+                        <input name="domain[max_cname_records]" type="number" min="0" value="<?= (int) ($config['domain']['max_cname_records'] ?? 10) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary">保存设置</button>

@@ -123,6 +123,20 @@ CREATE TABLE IF NOT EXISTS `txt_records` (
   KEY `idx_txt_domain_id` (`domain_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TXT 记录表';
 
+CREATE TABLE IF NOT EXISTS `dns_records` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `domain_id` BIGINT UNSIGNED NOT NULL COMMENT '关联 domains.id',
+  `type` VARCHAR(10) NOT NULL COMMENT 'A / AAAA / CNAME',
+  `name` VARCHAR(255) NOT NULL DEFAULT '@' COMMENT '记录名称',
+  `value` VARCHAR(255) NOT NULL COMMENT '记录值',
+  `proxied` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Cloudflare CDN 代理开关',
+  `provider_record_id` VARCHAR(255) DEFAULT NULL COMMENT 'DNS 服务商记录 ID',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_dns_record_domain_id` (`domain_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='DNS 记录表（A / AAAA / CNAME）';
+
 CREATE TABLE IF NOT EXISTS `announcements` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` VARCHAR(120) NOT NULL,

@@ -5,6 +5,7 @@ $domainConfig = (require __DIR__ . '/../../config/config.php')['domain'] ?? [];
 $minLength = max(1, (int) ($domainConfig['min_length'] ?? 3));
 $maxLength = max(1, (int) ($domainConfig['max_length'] ?? 24));
 $allowUnicode = !empty($domainConfig['allow_unicode']);
+$autoApprove = !empty($domainConfig['auto_approve']);
 
 $pdo = auth_db();
 $error = '';
@@ -46,6 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException("子域名前缀不能少于 {$minLength} 个字符。");
             }
 
+            $maxDomains = (int) ($domainConfig['max_domains_per_user'] ?? 3);
+            if ($maxDomains > 0) {
+                $countStmt = $pdo->prepare("SELECT COUNT(*) FROM domains WHERE assigned_to = :user_id AND status = 2");
+                $countStmt->execute([':user_id' => $userId]);
+                $currentCount = (int) $countStmt->fetchColumn();
+                if ($currentCount >= $maxDomains) {
+                    throw new RuntimeException("每人最多持有 {$maxDomains} 个域名。");
+                }
+            }
+
             $root = dns_root_domain_by_id($rootDomainId);
             if (!$root || (int) $root['status'] !== 1) {
                 throw new RuntimeException('Selected root domain is unavailable.');
@@ -81,20 +92,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('This domain is no longer available.' . $reason);
             }
 
-            $stmt = $pdo->prepare('INSERT INTO domain_requests (user_id, domain_id, requested_domain, purpose, remark, status, created_at, updated_at) VALUES (:user_id, :domain_id, :requested_domain, :purpose, :remark, 2, NOW(), NOW())');
+            $requestStatus = $autoApprove ? 2 : 1;
+            $domainStatus = $autoApprove ? 2 : 3;
+            $assignedTo = $autoApprove ? $userId : null;
+
+            $stmt = $pdo->prepare('INSERT INTO domain_requests (user_id, domain_id, requested_domain, purpose, remark, status, created_at, updated_at) VALUES (:user_id, :domain_id, :requested_domain, :purpose, :remark, :status, NOW(), NOW())');
             $stmt->execute([
                 ':user_id' => $userId,
                 ':domain_id' => (int) $domain['id'],
                 ':requested_domain' => $requestedDomain,
                 ':purpose' => $purpose,
                 ':remark' => $remark,
+                ':status' => $requestStatus,
             ]);
 
-            $stmt = $pdo->prepare('UPDATE domains SET status = 2, assigned_to = :assigned_to, updated_at = NOW() WHERE id = :id');
-            $stmt->execute([':id' => (int) $domain['id'], ':assigned_to' => $userId]);
+            $stmt = $pdo->prepare('UPDATE domains SET status = :domain_status, assigned_to = :assigned_to, updated_at = NOW() WHERE id = :id');
+            $stmt->execute([
+                ':id' => (int) $domain['id'],
+                ':domain_status' => $domainStatus,
+                ':assigned_to' => $assignedTo,
+            ]);
 
             $pdo->commit();
-            $message = 'Submitted.';
+            $message = $autoApprove ? 'Submitted.' : '已提交，等待管理员审核。';
         } elseif ($action === 'revoke') {
             $id = (int) ($_POST['id'] ?? 0);
             $pdo->beginTransaction();

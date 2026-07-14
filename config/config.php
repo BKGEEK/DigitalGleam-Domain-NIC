@@ -29,6 +29,13 @@ return array (
     'min_length' => 3,
     'max_length' => 24,
     'allow_unicode' => false,
+    'auto_approve' => true,
+    'max_domains_per_user' => 3,
+    'max_ns_records' => 5,
+    'max_txt_records' => 3,
+    'max_a_records' => 10,
+    'max_aaaa_records' => 10,
+    'max_cname_records' => 10,
   ),
   'email_templates' => 
   array (

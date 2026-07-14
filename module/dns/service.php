@@ -132,6 +132,12 @@ function dns_provider_config(string $provider): array
     return $settings['dns'][$provider] ?? [];
 }
 
+function dns_domain_record_config(): array
+{
+    $config = dns_config();
+    return $config['domain'] ?? [];
+}
+
 function dns_ns_records_by_domain_id(int $domainId): array
 {
     $pdo = dns_db();
@@ -153,8 +159,9 @@ function dns_ns_record_add(int $domainId, string $nameserver): array
     $stmt->execute([':domain_id' => $domainId]);
     $count = (int) $stmt->fetch()['cnt'];
 
-    if ($count >= 5) {
-        return ['success' => false, 'message' => '最多只能添加 5 条 NS 记录'];
+    $maxNs = (int) (dns_domain_record_config()['max_ns_records'] ?? 5);
+    if ($maxNs > 0 && $count >= $maxNs) {
+        return ['success' => false, 'message' => "最多只能添加 {$maxNs} 条 NS 记录"];
     }
 
     $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM ns_records WHERE domain_id = :domain_id AND nameserver = :nameserver');
@@ -508,8 +515,9 @@ function dns_txt_record_add(int $domainId, string $value): array
     $stmt->execute([':domain_id' => $domainId]);
     $count = (int) $stmt->fetch()['cnt'];
 
-    if ($count >= 3) {
-        return ['success' => false, 'message' => '最多只能添加 3 条 TXT 记录'];
+    $maxTxt = (int) (dns_domain_record_config()['max_txt_records'] ?? 3);
+    if ($maxTxt > 0 && $count >= $maxTxt) {
+        return ['success' => false, 'message' => "最多只能添加 {$maxTxt} 条 TXT 记录"];
     }
 
     $stmt = $pdo->prepare('INSERT INTO txt_records (domain_id, value) VALUES (:domain_id, :value)');
@@ -737,4 +745,263 @@ function dns_txt_delete_from_provider(int $domainId, string $value, string $prov
     }
 
     return ['success' => false, 'message' => "服务商 {$provider} 暂不支持自动同步"];
+}
+
+function dns_records_by_domain_id(int $domainId): array
+{
+    $pdo = dns_db();
+    $stmt = $pdo->prepare('SELECT * FROM dns_records WHERE domain_id = :domain_id ORDER BY id ASC');
+    $stmt->execute([':domain_id' => $domainId]);
+    return $stmt->fetchAll();
+}
+
+function dns_record_add(int $domainId, string $type, string $name, string $value, bool $proxied = false): array
+{
+    $type = strtoupper(trim($type));
+    $name = trim($name);
+    $value = trim($value);
+
+    if (!in_array($type, ['A', 'AAAA', 'CNAME'], true)) {
+        return ['success' => false, 'message' => '不支持的记录类型'];
+    }
+    if ($name === '') {
+        return ['success' => false, 'message' => '记录名称不能为空'];
+    }
+    if ($value === '') {
+        return ['success' => false, 'message' => '记录值不能为空'];
+    }
+
+    $pdo = dns_db();
+
+    $config = dns_domain_record_config();
+    $typeLimitKey = 'max_' . strtolower($type) . '_records';
+    $maxType = (int) ($config[$typeLimitKey] ?? 10);
+
+    if ($maxType > 0) {
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM dns_records WHERE domain_id = :domain_id AND type = :type');
+        $stmt->execute([':domain_id' => $domainId, ':type' => $type]);
+        $count = (int) $stmt->fetch()['cnt'];
+        if ($count >= $maxType) {
+            return ['success' => false, 'message' => "最多只能添加 {$maxType} 条 {$type} 记录"];
+        }
+    }
+
+    $stmt = $pdo->prepare('INSERT INTO dns_records (domain_id, type, name, value, proxied) VALUES (:domain_id, :type, :name, :value, :proxied)');
+    $success = $stmt->execute([
+        ':domain_id' => $domainId,
+        ':type' => $type,
+        ':name' => $name,
+        ':value' => $value,
+        ':proxied' => $proxied ? 1 : 0,
+    ]);
+
+    if (!$success) {
+        return ['success' => false, 'message' => '添加失败，请重试'];
+    }
+
+    $recordId = (int) $pdo->lastInsertId();
+
+    $syncResult = dns_record_sync_to_provider($domainId, $recordId, $type, $name, $value, $proxied);
+    if ($syncResult['success'] && !empty($syncResult['provider_record_id'])) {
+        $stmt = $pdo->prepare('UPDATE dns_records SET provider_record_id = :provider_record_id WHERE id = :id');
+        $stmt->execute([':provider_record_id' => $syncResult['provider_record_id'], ':id' => $recordId]);
+    }
+
+    return ['success' => true, 'message' => '添加成功', 'id' => $recordId, 'sync' => $syncResult];
+}
+
+function dns_record_delete(int $id): array
+{
+    $pdo = dns_db();
+
+    $stmt = $pdo->prepare('SELECT dr.*, d.id AS domain_id FROM dns_records dr WHERE dr.id = :id');
+    $stmt->execute([':id' => $id]);
+    $record = $stmt->fetch();
+
+    if (!$record) {
+        return ['success' => false, 'message' => '记录不存在'];
+    }
+
+    $domainId = (int) $record['domain_id'];
+
+    $stmt = $pdo->prepare('DELETE FROM dns_records WHERE id = :id');
+    $stmt->execute([':id' => $id]);
+
+    if (!empty($record['provider_record_id'])) {
+        dns_record_delete_from_provider($domainId, $record['type'], $record['provider_record_id']);
+    }
+
+    return ['success' => true, 'message' => '删除成功'];
+}
+
+function dns_record_sync_to_provider(int $domainId, int $recordId, string $type, string $name, string $value, bool $proxied = false): array
+{
+    $pdo = dns_db();
+    $stmt = $pdo->prepare('SELECT d.*, r.root_domain, r.provider FROM domains d INNER JOIN root_domains r ON r.id = d.root_domain_id WHERE d.id = :id');
+    $stmt->execute([':id' => $domainId]);
+    $domain = $stmt->fetch();
+
+    if (!$domain) {
+        return ['success' => false, 'message' => '域名不存在'];
+    }
+
+    $provider = $domain['provider'];
+    $subdomain = $domain['subdomain'];
+    $rootDomain = $domain['root_domain'];
+    $fullDomain = $name === '@' ? $rootDomain : $name . '.' . $rootDomain;
+
+    if ($provider === 'cloudflare') {
+        require_once __DIR__ . '/cloudflare/api.php';
+        if (!cloudflare_enabled()) {
+            return ['success' => false, 'message' => 'Cloudflare 未启用'];
+        }
+        $result = cloudflare_create_record([
+            'type' => $type,
+            'name' => $fullDomain,
+            'value' => $value,
+            'domain' => $rootDomain,
+            'ttl' => 1,
+            'proxied' => $proxied,
+        ]);
+        if ($result['success'] && !empty($result['raw']['result']['id'])) {
+            return ['success' => true, 'provider_record_id' => $result['raw']['result']['id']];
+        }
+        $errorMsg = $result['raw']['errors'][0]['message'] ?? 'Cloudflare 同步失败';
+        return ['success' => false, 'message' => $errorMsg];
+    }
+
+    if ($provider === 'alidns') {
+        require_once __DIR__ . '/alidns/api.php';
+        if (!alidns_enabled()) {
+            return ['success' => false, 'message' => '阿里云 DNS 未启用'];
+        }
+        $result = alidns_create_record([
+            'domain' => $rootDomain,
+            'rr' => $name === '@' ? '@' : $name,
+            'type' => $type,
+            'value' => $value,
+            'ttl' => 600,
+        ]);
+        if ($result['success']) {
+            $body = json_decode($result['raw']['body'] ?? '', true);
+            $recordId = $body['RecordId'] ?? '';
+            return ['success' => true, 'provider_record_id' => $recordId];
+        }
+        $body = json_decode($result['raw']['body'] ?? '', true);
+        $errorMsg = $body['Message'] ?? '阿里云 DNS 同步失败';
+        return ['success' => false, 'message' => $errorMsg];
+    }
+
+    if ($provider === 'dnspod') {
+        require_once __DIR__ . '/dnspod/api.php';
+        if (!dnspod_enabled()) {
+            return ['success' => false, 'message' => 'DNSPod 未启用'];
+        }
+        $result = dnspod_create_record([
+            'domain' => $rootDomain,
+            'rr' => $name === '@' ? '@' : $name,
+            'type' => $type,
+            'value' => $value,
+            'ttl' => 600,
+        ]);
+        if ($result['success'] && !empty($result['raw']['Response']['RecordId'])) {
+            return ['success' => true, 'provider_record_id' => (string) $result['raw']['Response']['RecordId']];
+        }
+        $errorMsg = $result['raw']['Response']['Error']['Message'] ?? 'DNSPod 同步失败';
+        return ['success' => false, 'message' => $errorMsg];
+    }
+
+    if ($provider === 'powerdns') {
+        require_once __DIR__ . '/powerdns/api.php';
+        if (!powerdns_enabled()) {
+            return ['success' => false, 'message' => 'PowerDNS 未启用'];
+        }
+        $result = powerdns_create_record([
+            'domain' => $rootDomain,
+            'name' => $fullDomain,
+            'type' => $type,
+            'value' => $value,
+            'ttl' => 3600,
+        ]);
+        if ($result['success']) {
+            return ['success' => true, 'provider_record_id' => ''];
+        }
+        return ['success' => false, 'message' => 'PowerDNS 同步失败'];
+    }
+
+    return ['success' => true, 'provider_record_id' => ''];
+}
+
+function dns_record_delete_from_provider(int $domainId, string $type, string $providerRecordId): array
+{
+    $pdo = dns_db();
+    $stmt = $pdo->prepare('SELECT d.*, r.root_domain, r.provider FROM domains d INNER JOIN root_domains r ON r.id = d.root_domain_id WHERE d.id = :id');
+    $stmt->execute([':id' => $domainId]);
+    $domain = $stmt->fetch();
+
+    if (!$domain) {
+        return ['success' => false, 'message' => '域名不存在'];
+    }
+
+    $provider = $domain['provider'];
+    $rootDomain = $domain['root_domain'];
+
+    if ($provider === 'cloudflare') {
+        require_once __DIR__ . '/cloudflare/api.php';
+        if (!cloudflare_enabled()) {
+            return ['success' => false, 'message' => 'Cloudflare 未启用'];
+        }
+        if (empty($providerRecordId)) {
+            return ['success' => false, 'message' => '缺少 Cloudflare 记录 ID'];
+        }
+        $zoneId = cloudflare_find_zone_id($rootDomain);
+        if (!$zoneId) {
+            return ['success' => false, 'message' => '未找到 Cloudflare Zone'];
+        }
+        return cloudflare_delete_record([
+            'zone_id' => $zoneId,
+            'record_id' => $providerRecordId,
+        ]);
+    }
+
+    if ($provider === 'alidns') {
+        require_once __DIR__ . '/alidns/api.php';
+        if (!alidns_enabled()) {
+            return ['success' => false, 'message' => '阿里云 DNS 未启用'];
+        }
+        if (empty($providerRecordId)) {
+            return ['success' => false, 'message' => '缺少阿里云记录 ID'];
+        }
+        return alidns_delete_record([
+            'record_id' => $providerRecordId,
+        ]);
+    }
+
+    if ($provider === 'dnspod') {
+        require_once __DIR__ . '/dnspod/api.php';
+        if (!dnspod_enabled()) {
+            return ['success' => false, 'message' => 'DNSPod 未启用'];
+        }
+        if (empty($providerRecordId)) {
+            return ['success' => false, 'message' => '缺少 DNSPod 记录 ID'];
+        }
+        return dnspod_delete_record([
+            'domain' => $rootDomain,
+            'record_id' => $providerRecordId,
+        ]);
+    }
+
+    if ($provider === 'powerdns') {
+        require_once __DIR__ . '/powerdns/api.php';
+        if (!powerdns_enabled()) {
+            return ['success' => false, 'message' => 'PowerDNS 未启用'];
+        }
+        return powerdns_delete_record([
+            'domain' => $rootDomain,
+            'name' => $fullDomain,
+            'type' => $type,
+        ]);
+    }
+
+    return ['success' => true, 'message' => '已从本地删除'];
 }
