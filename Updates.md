@@ -3,13 +3,26 @@
 ## 2026-07-22
 
 ### 新增功能
-- **WHOIS 查询 JSON API**：`whois/api/index.php` 新增 RESTful JSON API 接口，支持外部系统通过 `GET /whois/api/?query=api.example.com` 查询域名公开 WHOIS 信息，返回结构化 JSON 数据
-- **查询逻辑抽取**：将 `whois/index.php` 中的内联查询逻辑抽取到 `module/whois/api.php`，HTML 页面与 API 共享同一套查询函数，消除代码重复
+- **WHOIS 查询 JSON API**：新增 `whois/api/index.php` JSON 接口，支持外部系统通过 `GET /whois/api/?query=api.example.com` 查询域名公开 WHOIS 信息
+- **域名有效期管理**：新增域名注册时长、续期提前期、续期时长三个配置项，支持在后台灵活配置
+- **数据库变更**：`domains` 表新增 `expires_at` 字段（DATETIME，NULL 表示永久有效）
+- **注册时长**：用户首次注册时域名的有效月数（0=永久有效）
+- **续期提前期**：到期前多少个月允许续期（0=不允许续期）
+- **续期时长**：每次续期增加的月数（0=不允许续期）
 ### 新增文件
-- `module/whois/api.php` — 核心函数：`whois_api_lookup()` 查询逻辑 + `whois_api_json()` JSON 输出
-- `whois/api/index.php` — API 入口，返回 JSON 响应
+- `module/whois/api.php` — WHOIS 查询核心函数 `whois_api_lookup()` + JSON 输出函数 `whois_api_json()`
+- `whois/api/index.php` — WHOIS API 入口，返回 JSON 响应
 ### 功能优化
-- `whois/index.php` 重构为调用 `whois_api_lookup()`，逻辑更清晰，便于后续维护
+- `whois/index.php` 重构为调用 `whois_api_lookup()`，消除代码重复
+- 用户「我的域名」页面新增「到期时间」列，显示过期状态（正常/即将到期/已过期/永久有效）
+- 用户「我的域名」页面新增「续期」按钮，到期前可在续期提前期内一键续期
+- 用户「概览」页面新增「即将到期的域名」提醒区域
+- 域名申请自动通过或管理员审批时，自动根据注册时长设置过期时间
+### 数据库变更
+```sql
+-- domains 表新增 expires_at 字段（如不存在需手动添加）
+ALTER TABLE `domains` ADD COLUMN `expires_at` DATETIME DEFAULT NULL COMMENT '过期时间，NULL 表示永久有效' AFTER `assigned_to`;
+```
 
 ## 2026-07-14
 
