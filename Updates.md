@@ -1,5 +1,16 @@
 # 更新日志
 
+## 2026-07-22
+
+### 新增功能
+- **WHOIS 查询 JSON API**：`whois/api/index.php` 新增 RESTful JSON API 接口，支持外部系统通过 `GET /whois/api/?query=api.example.com` 查询域名公开 WHOIS 信息，返回结构化 JSON 数据
+- **查询逻辑抽取**：将 `whois/index.php` 中的内联查询逻辑抽取到 `module/whois/api.php`，HTML 页面与 API 共享同一套查询函数，消除代码重复
+### 新增文件
+- `module/whois/api.php` — 核心函数：`whois_api_lookup()` 查询逻辑 + `whois_api_json()` JSON 输出
+- `whois/api/index.php` — API 入口，返回 JSON 响应
+### 功能优化
+- `whois/index.php` 重构为调用 `whois_api_lookup()`，逻辑更清晰，便于后续维护
+
 ## 2026-07-14
 
 ### 新增功能
