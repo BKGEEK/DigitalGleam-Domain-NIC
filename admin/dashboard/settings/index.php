@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'enable_a_records' => !empty($domain['enable_a_records']),
             'enable_aaaa_records' => !empty($domain['enable_aaaa_records']),
             'enable_cname_records' => !empty($domain['enable_cname_records']),
+            'registration_months' => max(0, (int) ($domain['registration_months'] ?? 12)),
+            'renewal_grace_months' => max(0, (int) ($domain['renewal_grace_months'] ?? 3)),
+            'renewal_months' => max(0, (int) ($domain['renewal_months'] ?? 12)),
         ],
         'smtp' => $config['smtp'],
         'dns' => $config['dns'],
@@ -176,6 +179,29 @@ admin_dashboard_render('系统设置', 'settings', function () use ($config, $er
                     <div class="flex items-center gap-3">
                         <input type="checkbox" name="domain[enable_cname_records]" value="1" <?= !empty($config['domain']['enable_cname_records']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
                         <span class="text-sm text-slate-700">允许用户使用 CNAME 记录</span>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <h3 class="text-lg font-semibold text-slate-900">域名有效期</h3>
+                <p class="mt-1 text-sm text-slate-500">任意字段设为 0 则代表永久有效或不限制。</p>
+
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">注册时长（月）</label>
+                        <input name="domain[registration_months]" type="number" min="0" value="<?= (int) ($config['domain']['registration_months'] ?? 12) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                        <p class="mt-1 text-xs text-slate-400">用户首次注册时域名的有效月数</p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">续期提前期（月）</label>
+                        <input name="domain[renewal_grace_months]" type="number" min="0" value="<?= (int) ($config['domain']['renewal_grace_months'] ?? 3) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                        <p class="mt-1 text-xs text-slate-400">到期前多少个月允许续期</p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">续期时长（月）</label>
+                        <input name="domain[renewal_months]" type="number" min="0" value="<?= (int) ($config['domain']['renewal_months'] ?? 12) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                        <p class="mt-1 text-xs text-slate-400">每次续期增加的月数</p>
                     </div>
                 </div>
 

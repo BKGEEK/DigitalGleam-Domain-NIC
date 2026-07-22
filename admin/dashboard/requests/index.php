@@ -63,10 +63,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('No domain available.');
             }
 
-            $bind = $pdo->prepare('UPDATE domains SET status = 2, assigned_to = :assigned_to, updated_at = NOW() WHERE id = :id');
+            $config = require __DIR__ . '/../../../config/config.php';
+            $regMonths = (int) ($config['domain']['registration_months'] ?? 12);
+            $expiresAt = null;
+            if ($regMonths > 0) {
+                $expiresAt = date('Y-m-d H:i:s', strtotime("+{$regMonths} months"));
+            }
+
+            $bind = $pdo->prepare('UPDATE domains SET status = 2, assigned_to = :assigned_to, expires_at = :expires_at, updated_at = NOW() WHERE id = :id');
             $bind->execute([
                 ':assigned_to' => (int) $request['user_id'],
                 ':id' => $domainId,
+                ':expires_at' => $expiresAt,
             ]);
 
             $update = $pdo->prepare('UPDATE domain_requests SET domain_id = :domain_id, status = 2, reviewed_by = :reviewed_by, reviewed_at = NOW(), updated_at = NOW() WHERE id = :id');

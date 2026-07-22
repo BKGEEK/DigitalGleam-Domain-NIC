@@ -15,6 +15,9 @@ $enableTxtRecords = !empty($recordConfig['enable_txt_records']);
 $enableARecords = !empty($recordConfig['enable_a_records']);
 $enableAaaaRecords = !empty($recordConfig['enable_aaaa_records']);
 $enableCnameRecords = !empty($recordConfig['enable_cname_records']);
+$registrationMonths = (int) ($recordConfig['registration_months'] ?? 12);
+$renewalGraceMonths = (int) ($recordConfig['renewal_grace_months'] ?? 3);
+$renewalMonths = (int) ($recordConfig['renewal_months'] ?? 12);
 
 $message = $_GET['message'] ?? '';
 $messageType = $_GET['type'] ?? 'success';
@@ -95,6 +98,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $result = dns_record_delete($recordId);
             $redirect .= '?manage_dns=' . $domainId . '&message=' . urlencode($result['message']) . '&type=' . ($result['success'] ? 'success' : 'error');
         }
+    } elseif ($action === 'renew' && $domainId > 0) {
+        if ($renewalMonths <= 0) {
+            $redirect .= '?message=' . urlencode('续期功能未启用') . '&type=error';
+        } else {
+            $stmt = $pdo->prepare('SELECT * FROM domains WHERE id = :id AND assigned_to = :user_id LIMIT 1');
+            $stmt->execute([':id' => $domainId, ':user_id' => $userId]);
+            $domain = $stmt->fetch();
+            if (!$domain) {
+                $redirect .= '?message=' . urlencode('域名不存在') . '&type=error';
+            } else {
+                $expiresAt = $domain['expires_at'] ?? null;
+                $now = time();
+                $canRenew = false;
+                if ($expiresAt === null) {
+                    $canRenew = false;
+                    $redirect .= '?message=' . urlencode('该域名永久有效，无需续期') . '&type=error';
+                } else {
+                    $expTs = strtotime($expiresAt);
+                    $graceStart = strtotime("-{$renewalGraceMonths} months", $expTs);
+                    $canRenew = $now >= $graceStart;
+                    if (!$canRenew) {
+                        $redirect .= '?message=' . urlencode('尚未到续期时间') . '&type=error';
+                    }
+                }
+                if ($canRenew) {
+                    $newExpiresAt = date('Y-m-d H:i:s', strtotime("+{$renewalMonths} months", $expTs));
+                    $stmt = $pdo->prepare('UPDATE domains SET expires_at = :expires_at, updated_at = NOW() WHERE id = :id');
+                    $stmt->execute([':id' => $domainId, ':expires_at' => $newExpiresAt]);
+                    $redirect .= '?message=' . urlencode('续期成功，新到期时间：' . $newExpiresAt) . '&type=success';
+                }
+            }
+        }
     }
 
     header('Location: ' . $redirect);
@@ -105,7 +140,7 @@ $title = $manageDomain ? ($manageType === 'ns' ? 'NS' : ($manageType === 'txt' ?
 $activeKey = 'domains';
 $isCloudflare = $manageDomain && $manageDomain['provider'] === 'cloudflare';
 
-user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDomainId, $manageType, $nsRecords, $txtRecords, $dnsRecords, $message, $messageType, $isCloudflare, $maxNsRecords, $maxTxtRecords, $maxARecords, $maxAaaaRecords, $maxCnameRecords, $enableNsRecords, $enableTxtRecords, $enableARecords, $enableAaaaRecords, $enableCnameRecords, $pdo, $userId): void {
+user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDomainId, $manageType, $nsRecords, $txtRecords, $dnsRecords, $message, $messageType, $isCloudflare, $maxNsRecords, $maxTxtRecords, $maxARecords, $maxAaaaRecords, $maxCnameRecords, $enableNsRecords, $enableTxtRecords, $enableARecords, $enableAaaaRecords, $enableCnameRecords, $pdo, $userId, $renewalGraceMonths, $renewalMonths): void {
     ?>
     <section class="panel">
         <?php if ($manageDomain && $manageType === 'ns'): ?>
@@ -423,34 +458,86 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
             <?php endif; ?>
 
             <div class="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-slate-500">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">完整域名</th>
-                            <th class="px-4 py-3 font-medium">状态</th>
-                            <th class="px-4 py-3 font-medium">备注</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($rows as $row): ?>
+<table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50 text-left text-slate-500">
                             <tr>
-                                <td class="px-4 py-3 font-medium text-slate-900"><?= htmlspecialchars(dns_domain_display_name($row)) ?></td>
-                                <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars(match ((int) $row['status']) {1 => '空闲', 2 => '使用中', 3 => '审核中', 0 => '停用', default => '未知'}) ?></td>
-                                <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['remark'] ?? '') ?></td>
-                                <td class="px-4 py-3">
-                                    <?php if ($enableNsRecords): ?>
-                                        <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">NS 管理</a>
-                                        <span class="mx-2 text-slate-300">|</span>
-                                    <?php endif; ?>
-                                    <?php if ($enableTxtRecords): ?>
-                                        <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">TXT 管理</a>
-                                        <span class="mx-2 text-slate-300">|</span>
-                                    <?php endif; ?>
-                                    <a href="/user/domains/?manage_dns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">DNS 管理</a>
-                                </td>
+                                <th class="px-4 py-3 font-medium">完整域名</th>
+                                <th class="px-4 py-3 font-medium">状态</th>
+                                <th class="px-4 py-3 font-medium">到期时间</th>
+                                <th class="px-4 py-3 font-medium">备注</th>
+                                <th class="px-4 py-3 font-medium">操作</th>
                             </tr>
-                        <?php endforeach; ?>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php foreach ($rows as $row): ?>
+                                <?php
+                                $expiresAt = $row['expires_at'] ?? null;
+                                $now = time();
+                                $expStatus = '';
+                                $expLabel = '';
+                                if ($expiresAt === null) {
+                                    $expStatus = 'permanent';
+                                    $expLabel = '永久有效';
+                                } else {
+                                    $expTs = strtotime($expiresAt);
+                                    if ($expTs < $now) {
+                                        $expStatus = 'expired';
+                                        $expLabel = '已过期';
+                                    } else {
+                                        $graceStart = strtotime("-{$renewalGraceMonths} months", $expTs);
+                                        if ($now >= $graceStart) {
+                                            $expStatus = 'expiring';
+                                            $expLabel = '即将到期';
+                                        } else {
+                                            $expStatus = 'valid';
+                                            $expLabel = '正常';
+                                        }
+                                    }
+                                }
+                                ?>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium text-slate-900"><?= htmlspecialchars(dns_domain_display_name($row)) ?></td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <?= match ((int) $row['status']) {1 => 'bg-slate-100 text-slate-600', 2 => 'bg-emerald-100 text-emerald-700', 3 => 'bg-amber-100 text-amber-700', 0 => 'bg-red-100 text-red-700', default => 'bg-slate-100 text-slate-600'} ?>">
+                                            <?= htmlspecialchars(match ((int) $row['status']) {1 => '空闲', 2 => '使用中', 3 => '审核中', 0 => '停用', default => '未知'}) ?>
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <?php if ($expiresAt === null): ?>
+                                            <span class="text-xs text-slate-400">永久有效</span>
+                                        <?php else: ?>
+                                            <span class="text-xs <?= $expStatus === 'expired' ? 'text-red-600 font-medium' : ($expStatus === 'expiring' ? 'text-amber-600 font-medium' : 'text-slate-500') ?>">
+                                                <?= htmlspecialchars(date('Y-m-d', strtotime($expiresAt))) ?>
+                                            </span>
+                                            <?php if ($expStatus === 'expired'): ?>
+                                                <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">已过期</span>
+                                            <?php elseif ($expStatus === 'expiring'): ?>
+                                                <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">即将到期</span>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['remark'] ?? '') ?></td>
+                                    <td class="px-4 py-3">
+                                        <?php if ($enableNsRecords): ?>
+                                            <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">NS 管理</a>
+                                            <span class="mx-2 text-slate-300">|</span>
+                                        <?php endif; ?>
+                                        <?php if ($enableTxtRecords): ?>
+                                            <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">TXT 管理</a>
+                                            <span class="mx-2 text-slate-300">|</span>
+                                        <?php endif; ?>
+                                        <a href="/user/domains/?manage_dns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">DNS 管理</a>
+                                        <?php if ($expStatus === 'expiring' && $renewalMonths > 0): ?>
+                                            <span class="mx-2 text-slate-300">|</span>
+                                            <form method="post" class="inline" onsubmit="return confirm('确定续期该域名？将延长 <?= $renewalMonths ?> 个月有效期。')">
+                                                <input type="hidden" name="action" value="renew">
+                                                <input type="hidden" name="domain_id" value="<?= (int) $row['id'] ?>">
+                                                <button type="submit" class="text-sm font-medium text-amber-600 hover:text-amber-800">续期</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

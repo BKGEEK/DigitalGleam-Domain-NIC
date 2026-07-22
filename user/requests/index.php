@@ -106,11 +106,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':status' => $requestStatus,
             ]);
 
-            $stmt = $pdo->prepare('UPDATE domains SET status = :domain_status, assigned_to = :assigned_to, updated_at = NOW() WHERE id = :id');
+            $stmt = $pdo->prepare('UPDATE domains SET status = :domain_status, assigned_to = :assigned_to, expires_at = :expires_at, updated_at = NOW() WHERE id = :id');
+            $expiresAt = null;
+            $regMonths = (int) ($domainConfig['registration_months'] ?? 12);
+            if ($regMonths > 0) {
+                $expiresAt = date('Y-m-d H:i:s', strtotime("+{$regMonths} months"));
+            }
             $stmt->execute([
                 ':id' => (int) $domain['id'],
                 ':domain_status' => $domainStatus,
                 ':assigned_to' => $assignedTo,
+                ':expires_at' => $expiresAt,
             ]);
 
             $pdo->commit();

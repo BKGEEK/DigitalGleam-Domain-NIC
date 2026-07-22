@@ -7,7 +7,17 @@ $domainsCount = auth_user_domains_count((int) $_SESSION['user_id']);
 $hasWhois = $user ? auth_user_has_whois($user) : false;
 $announcements = auth_db()->query('SELECT title, content, published_at FROM announcements WHERE status = 1 ORDER BY id DESC LIMIT 5')->fetchAll();
 
-user_render('用户概览', 'dashboard', function () use ($user, $requestsCount, $domainsCount, $hasWhois, $announcements): void {
+$config = require __DIR__ . '/../../config/config.php';
+$renewalGraceMonths = (int) ($config['domain']['renewal_grace_months'] ?? 3);
+$renewalMonths = (int) ($config['domain']['renewal_months'] ?? 12);
+
+$expiringDomains = [];
+$pdo = auth_db();
+$stmt = $pdo->prepare("SELECT d.*, r.root_domain FROM domains d INNER JOIN root_domains r ON r.id = d.root_domain_id WHERE d.assigned_to = :user_id AND d.expires_at IS NOT NULL AND d.expires_at > NOW() AND d.expires_at <= DATE_ADD(NOW(), INTERVAL :grace MONTH) ORDER BY d.expires_at ASC");
+$stmt->execute([':user_id' => (int) $_SESSION['user_id'], ':grace' => $renewalGraceMonths]);
+$expiringDomains = $stmt->fetchAll();
+
+user_render('用户概览', 'dashboard', function () use ($user, $requestsCount, $domainsCount, $hasWhois, $announcements, $expiringDomains, $renewalMonths): void {
     ?>
     <div class="grid gap-4 md:grid-cols-3">
         <div class="panel">
@@ -50,5 +60,22 @@ user_render('用户概览', 'dashboard', function () use ($user, $requestsCount,
             <a href="/user/profile/" class="btn-primary mt-6">完善资料</a>
         </section>
     </div>
+
+    <?php if (!empty($expiringDomains)): ?>
+        <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div class="text-sm font-medium text-amber-800">即将到期的域名</div>
+            <ul class="mt-2 space-y-1">
+                <?php foreach ($expiringDomains as $ed): ?>
+                    <li class="text-sm text-amber-700">
+                        <?= htmlspecialchars(dns_domain_display_name($ed)) ?>
+                        - 到期：<?= htmlspecialchars(date('Y-m-d', strtotime($ed['expires_at']))) ?>
+                        <?php if ($renewalMonths > 0): ?>
+                            <a href="/user/domains/" class="ml-2 font-medium text-amber-800 underline hover:text-amber-900">去续期</a>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
     <?php
 });

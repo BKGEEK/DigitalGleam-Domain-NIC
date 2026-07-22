@@ -40,8 +40,11 @@ return array (
     'max_cname_records' => 10,
     'enable_a_records' => true,
     'enable_aaaa_records' => true,
-    'enable_cname_records' => true,
-  ),
+'enable_cname_records' => true,
+        'registration_months' => 12,
+        'renewal_grace_months' => 3,
+        'renewal_months' => 12,
+        ),
   'email_templates' => 
   array (
     'register_subject' => '{site_name} - 邮箱验证',

@@ -100,12 +100,21 @@ function dns_api_domain_list(?int $rootDomainId = null): array
 function dns_api_domain_create(int $rootDomainId, string $subdomain, int $status = 1, ?int $assignedTo = null, string $remark = ''): int
 {
     $pdo = dns_db();
-    $stmt = $pdo->prepare('INSERT INTO domains (root_domain_id, subdomain, status, assigned_to, remark) VALUES (:root_domain_id, :subdomain, :status, :assigned_to, :remark)');
+    $expiresAt = null;
+    if ($assignedTo !== null && $status === 2) {
+        $config = require __DIR__ . '/../../config/config.php';
+        $regMonths = (int) ($config['domain']['registration_months'] ?? 12);
+        if ($regMonths > 0) {
+            $expiresAt = date('Y-m-d H:i:s', strtotime("+{$regMonths} months"));
+        }
+    }
+    $stmt = $pdo->prepare('INSERT INTO domains (root_domain_id, subdomain, status, assigned_to, expires_at, remark) VALUES (:root_domain_id, :subdomain, :status, :assigned_to, :expires_at, :remark)');
     $stmt->execute([
         ':root_domain_id' => $rootDomainId,
         ':subdomain' => trim($subdomain),
         ':status' => $status,
         ':assigned_to' => $assignedTo,
+        ':expires_at' => $expiresAt,
         ':remark' => trim($remark),
     ]);
 
@@ -117,7 +126,7 @@ function dns_api_domain_update(int $id, array $data): bool
     $fields = [];
     $params = [':id' => $id];
 
-    foreach (['root_domain_id', 'subdomain', 'status', 'assigned_to', 'remark'] as $key) {
+    foreach (['root_domain_id', 'subdomain', 'status', 'assigned_to', 'expires_at', 'remark'] as $key) {
         if (array_key_exists($key, $data)) {
             $fields[] = "{$key} = :{$key}";
             $params[":{$key}"] = $data[$key];
