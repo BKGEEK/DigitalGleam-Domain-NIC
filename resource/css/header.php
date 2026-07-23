@@ -1,13 +1,15 @@
 ﻿<?php
+require_once __DIR__ . '/../../lang/helper.php';
+
 if (!isset($pageTitle)) {
-    $pageTitle = '数星二级域名分发';
+    $pageTitle = __('app.name');
 }
 
 // Load config for nav brand
 $config = require __DIR__ . '/../../config/config.php';
-$appName = $config['app']['name'] ?? '数星二级域名分发';
+$appName = $config['app']['name'] ?? __('app.name');
 ?><!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<?= lang_current() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,10 +103,11 @@ $appName = $config['app']['name'] ?? '数星二级域名分发';
                     <a href="/" class="text-xl font-semibold text-brand-600"><?= htmlspecialchars($appName) ?></a>
                 </div>
                 <div class="flex flex-wrap items-center gap-4 text-sm">
-                    <a href="/whois/index.php" class="text-slate-600 hover:text-brand-600 transition-colors">WHOIS 查询</a>
-                    <a href="/" class="text-slate-600 hover:text-brand-600 transition-colors">域名检索</a>
-                    <a href="/#notice" class="text-slate-600 hover:text-brand-600 transition-colors">公告</a>
-                    <a href="/user/login/" class="rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors">用户登录</a>
+                    <a href="/whois/index.php" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.whois') ?></a>
+                    <a href="/" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.domain_search') ?></a>
+                    <a href="/#notice" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.announcement') ?></a>
+                    <?= lang_selector() ?>
+                    <a href="/user/login/" class="rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"><?= __('nav.user_login') ?></a>
                 </div>
             </div>
         </div>

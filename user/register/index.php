@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$pageTitle = '用户注册';
+$pageTitle = __('user.register.title');
 require __DIR__ . '/../../resource/css/header.php';
 require __DIR__ . '/../../resource/js/auth.php';
 require __DIR__ . '/../../mail/mailer.php';
@@ -17,15 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
 
     if ($username === '' || $email === '' || $password === '') {
-        $error = '请完整填写注册信息。';
+        $error = __('user.register.error_empty');
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = '邮箱格式不正确。';
+        $error = __('user.register.error_email');
     } elseif (!auth_validate_email_domain($email)) {
-        $error = '仅支持 gmail.com、qq.com、163.com、outlook.com 邮箱注册，不支持带 + 的别名邮箱。';
+        $error = __('user.register.error_email_domain');
     } elseif ($password !== $passwordConfirm) {
-        $error = '两次输入的密码不一致。';
+        $error = __('user.register.error_password_mismatch');
     } elseif (auth_user_exists($username, $email)) {
-        $error = '用户名或邮箱已存在。';
+        $error = __('user.register.error_exists');
     } else {
         $result = auth_register_user($username, $email, $password);
         $baseUrl = auth_config()['app']['base_url'] ?? '';
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $html = $rendered['html'];
         $subject = $rendered['subject'];
         mail_send($email, $subject, $html);
-        $message = '注册成功，请前往邮箱完成验证后再登录。';
+        $message = __('user.register.success');
     }
 }
 ?>
@@ -49,10 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="page-wrap flex min-h-[calc(100vh-120px)] items-center py-12">
     <div class="grid w-full gap-8 lg:grid-cols-2">
         <section class="flex flex-col justify-center">
-            <span class="badge-brand w-fit">创建账户</span>
-            <h1 class="mt-6 text-4xl font-semibold tracking-tight text-slate-900">注册分发系统账号</h1>
+            <span class="badge-brand w-fit"><?= __('user.register.badge') ?></span>
+            <h1 class="mt-6 text-4xl font-semibold tracking-tight text-slate-900"><?= __('user.register.heading') ?></h1>
             <p class="mt-4 max-w-xl text-sm leading-7 text-slate-600">
-                注册后可提交二级域名申请、查看审核状态和接收系统通知。
+                <?= __('user.register.desc') ?>
             </p>
         </section>
 
@@ -65,26 +65,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             <form action="" method="post" class="space-y-5">
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">用户名</label>
-                    <input type="text" name="username" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="请输入用户名">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.register.username') ?></label>
+                    <input type="text" name="username" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('user.register.username_placeholder') ?>">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">邮箱</label>
-                    <input type="email" name="email" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="请输入邮箱">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.register.email') ?></label>
+                    <input type="email" name="email" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('user.register.email_placeholder') ?>">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">密码</label>
-                    <input type="password" name="password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="请输入密码">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.register.password') ?></label>
+                    <input type="password" name="password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('user.register.password_placeholder') ?>">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">确认密码</label>
-                    <input type="password" name="password_confirm" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="再次输入密码">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.register.confirm_password') ?></label>
+                    <input type="password" name="password_confirm" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('user.register.confirm_placeholder') ?>">
                 </div>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-slate-500">已有账号</span>
-                    <a href="/user/login/" class="text-brand-700 hover:text-brand-800">去登录</a>
+                    <span class="text-slate-500"><?= __('user.register.has_account') ?></span>
+                    <a href="/user/login/" class="text-brand-700 hover:text-brand-800"><?= __('user.register.go_login') ?></a>
                 </div>
-                <button type="submit" class="btn-primary w-full justify-center">注册</button>
+                <button type="submit" class="btn-primary w-full justify-center"><?= __('user.register.submit') ?></button>
             </form>
         </section>
     </div>

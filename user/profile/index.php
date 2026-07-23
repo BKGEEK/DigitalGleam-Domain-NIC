@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Invalid email.');
         }
         if ($data['email'] !== '' && !auth_validate_email_domain($data['email'])) {
-            throw new RuntimeException('仅支持 gmail.com、qq.com、163.com、outlook.com 邮箱，不支持带 + 的别名邮箱。');
+            throw new RuntimeException(__('user.profile.error_email_domain'));
         }
         if ($data['whois_email'] !== '' && !filter_var($data['whois_email'], FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Invalid WHOIS email.');
@@ -51,12 +51,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $user = auth_user_by_id($userId);
 
-user_render('Profile', 'profile', function () use ($user, $error, $message): void {
+user_render(__('user.profile.title'), 'profile', function () use ($user, $error, $message): void {
     ?>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
-            <h1 class="text-2xl font-semibold text-slate-900">Profile</h1>
-            <p class="mt-3 text-sm text-slate-600">Complete WHOIS info before requesting a domain.</p>
+            <h1 class="text-2xl font-semibold text-slate-900"><?= __('user.profile.title') ?></h1>
+            <p class="mt-3 text-sm text-slate-600"><?= __('user.profile.desc') ?></p>
 
             <?php if ($error): ?>
                 <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= htmlspecialchars($error) ?></div>
@@ -68,64 +68,64 @@ user_render('Profile', 'profile', function () use ($user, $error, $message): voi
             <form method="post" class="mt-6 space-y-4">
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Nickname</label>
+                        <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.nickname') ?></label>
                         <input name="nickname" value="<?= htmlspecialchars($user['nickname'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Email</label>
+                        <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.email') ?></label>
                         <input name="email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Phone</label>
+                        <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.phone') ?></label>
                         <input name="phone" value="<?= htmlspecialchars($user['phone'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                     </div>
                 </div>
 
                 <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <div class="text-sm font-medium text-slate-900">WHOIS</div>
+                    <div class="text-sm font-medium text-slate-900"><?= __('user.profile.whois_section') ?></div>
                     <div class="mt-4 flex items-center gap-3">
                         <input type="checkbox" name="whois_public" value="1" <?= !empty($user['whois_public']) ? 'checked' : '' ?> class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
-                        <span class="text-sm text-slate-700">Public WHOIS</span>
+                        <span class="text-sm text-slate-700"><?= __('user.profile.whois_public') ?></span>
                     </div>
                     <div class="mt-4 grid gap-4 md:grid-cols-2">
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">Contact Name</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.contact_name') ?></label>
                             <input name="whois_name" value="<?= htmlspecialchars($user['whois_name'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">Contact Phone</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.contact_phone') ?></label>
                             <input name="whois_phone" value="<?= htmlspecialchars($user['whois_phone'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">Contact Email</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.contact_email') ?></label>
                             <input name="whois_email" value="<?= htmlspecialchars($user['whois_email'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">Company</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.company') ?></label>
                             <input name="whois_company" value="<?= htmlspecialchars($user['whois_company'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">Address</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.address') ?></label>
                             <input name="whois_address" value="<?= htmlspecialchars($user['whois_address'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">ID Number</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.profile.id_number') ?></label>
                             <input name="whois_id_number" value="<?= htmlspecialchars($user['whois_id_number'] ?? '') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary">Save</button>
+                <button type="submit" class="btn-primary"><?= __('user.profile.save') ?></button>
             </form>
         </section>
 
         <section class="panel">
-            <h2 class="text-xl font-semibold text-slate-900">Status</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('user.profile.status_heading') ?></h2>
             <ul class="mt-4 space-y-3 text-sm text-slate-600">
-                <li>Email verified: <?= !empty($user['email_verified_at']) ? 'yes' : 'no' ?></li>
-                <li>WHOIS name: <?= !empty($user['whois_name']) ? 'set' : 'unset' ?></li>
-                <li>WHOIS email: <?= !empty($user['whois_email']) ? 'set' : 'unset' ?></li>
-                <li>WHOIS phone: <?= !empty($user['whois_phone']) ? 'set' : 'unset' ?></li>
+                <li><?= __('user.profile.email_verified') ?><?= !empty($user['email_verified_at']) ? __('user.profile.yes') : __('user.profile.no') ?></li>
+                <li><?= __('user.profile.whois_name_label') ?><?= !empty($user['whois_name']) ? __('user.profile.set') : __('user.profile.unset') ?></li>
+                <li><?= __('user.profile.whois_email_label') ?><?= !empty($user['whois_email']) ? __('user.profile.set') : __('user.profile.unset') ?></li>
+                <li><?= __('user.profile.whois_phone_label') ?><?= !empty($user['whois_phone']) ? __('user.profile.set') : __('user.profile.unset') ?></li>
             </ul>
         </section>
     </div>

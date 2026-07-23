@@ -35,11 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $export = "<?php\nreturn " . var_export($newConfig, true) . ";\n";
     if (file_put_contents($configPath, $export) === false) {
-        $error = '配置文件写入失败。';
+        $error = __('admin.settings.error_write');
     } else {
         $config = $newConfig;
         $dns = $newDns;
-        $message = 'DNS 接口配置已保存。';
+        $message = __('admin.dns.saved');
     }
 }
 
@@ -51,7 +51,7 @@ function dns_config_field(string $provider, string $field, string $label, mixed 
     <div>
         <label for="<?= $id ?>" class="mb-2 block text-sm font-medium text-slate-700"><?= htmlspecialchars($label) ?></label>
         <?php if ($type === 'password'): ?>
-            <input type="password" id="<?= $id ?>" name="<?= $name ?>" value="<?= htmlspecialchars((string) $value) ?>" placeholder="留空则保持原值" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+            <input type="password" id="<?= $id ?>" name="<?= $name ?>" value="<?= htmlspecialchars((string) $value) ?>" placeholder="<?= __('admin.smtp.keep_placeholder') ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
         <?php else: ?>
             <input type="<?= htmlspecialchars($type) ?>" id="<?= $id ?>" name="<?= $name ?>" value="<?= htmlspecialchars((string) $value) ?>" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
         <?php endif; ?>
@@ -59,7 +59,7 @@ function dns_config_field(string $provider, string $field, string $label, mixed 
     <?php
 }
 
-admin_dashboard_render('DNS 接口', 'dns', function () use ($dns, $providers, $error, $message): void {
+admin_dashboard_render(__('admin.dns.title'), 'dns', function () use ($dns, $providers, $error, $message): void {
     $providerFields = [
         'manual' => [],
         'alidns' => [
@@ -83,8 +83,8 @@ admin_dashboard_render('DNS 接口', 'dns', function () use ($dns, $providers, $
     ?>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
-            <h1 class="text-2xl font-semibold text-slate-900">DNS 接口配置</h1>
-            <p class="mt-3 text-sm text-slate-600">配置各 DNS 供应商的凭据和启用状态。密码/密钥字段留空表示保留原值。</p>
+            <h1 class="text-2xl font-semibold text-slate-900"><?= __('admin.dns.heading') ?></h1>
+            <p class="mt-3 text-sm text-slate-600"><?= __('admin.dns.desc') ?></p>
 
             <?php if ($error): ?>
                 <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= htmlspecialchars($error) ?></div>
@@ -109,7 +109,7 @@ admin_dashboard_render('DNS 接口', 'dns', function () use ($dns, $providers, $
                             <input type="hidden" name="dns[<?= $key ?>][enabled]" value="0">
                             <input type="checkbox" name="dns[<?= $key ?>][enabled]" value="1" <?= $enabled ? 'checked' : '' ?> class="peer sr-only">
                             <div class="h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-brand-500 peer-checked:after:translate-x-full"></div>
-                            <span class="ml-3 text-sm text-slate-600"><?= $enabled ? '已启用' : '已停用' ?></span>
+                            <span class="ml-3 text-sm text-slate-600"><?= $enabled ? __('admin.dns.enabled') : __('admin.dns.disabled') ?></span>
                         </label>
                     </div>
 
@@ -124,35 +124,35 @@ admin_dashboard_render('DNS 接口', 'dns', function () use ($dns, $providers, $
                 </div>
                 <?php endforeach; ?>
 
-                <button type="submit" class="btn-primary">保存配置</button>
+                <button type="submit" class="btn-primary"><?= __('admin.dns.save') ?></button>
             </form>
         </section>
 
         <section class="panel self-start">
-            <h2 class="text-xl font-semibold text-slate-900">说明</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('admin.dns.info_heading') ?></h2>
             <ul class="mt-4 space-y-4 text-sm text-slate-600">
-                    <strong class="text-slate-800">手动管理</strong><br>
-                    不需要 API 凭据，由管理员手动添加解析记录。
+                    <strong class="text-slate-800"><?= __('admin.dns.manual') ?></strong><br>
+                    <?= __('admin.dns.manual_desc') ?>
                 </li>
                 <li>
-                    <strong class="text-slate-800">阿里云 DNS</strong><br>
-                    RAM 用户需授予 <code class="rounded bg-slate-100 px-1 py-0.5 text-xs">AliyunDNSFullAccess</code> 权限。
+                    <strong class="text-slate-800"><?= __('admin.dns.alidns') ?></strong><br>
+                    <?= __('admin.dns.alidns_desc') ?>
                 </li>
                 <li>
-                    <strong class="text-slate-800">Cloudflare</strong><br>
-                    使用 API Token（推荐）或 Global API Key，需 <code class="rounded bg-slate-100 px-1 py-0.5 text-xs">Zone:DNS:Edit</code> 权限。
+                    <strong class="text-slate-800"><?= __('admin.dns.cloudflare') ?></strong><br>
+                    <?= __('admin.dns.cloudflare_desc') ?>
                 </li>
                 <li>
-                    <strong class="text-slate-800">DNSPod</strong><br>
-                    在 DNSPod 控制台创建 API 密钥（SecretId / SecretKey）。
+                    <strong class="text-slate-800"><?= __('admin.dns.dnspod') ?></strong><br>
+                    <?= __('admin.dns.dnspod_desc') ?>
                 </li>
                 <li>
-                    <strong class="text-slate-800">PowerDNS</strong><br>
-                    需启用 API 并配置 API Key，Server URL 为 API 端点地址。
+                    <strong class="text-slate-800"><?= __('admin.dns.powerdns') ?></strong><br>
+                    <?= __('admin.dns.powerdns_desc') ?>
                 </li>
                 <li>
-                    <strong class="text-slate-800">密码字段</strong><br>
-                    密钥/密码类字段留空会自动保留原有值，避免每次保存时覆盖。
+                    <strong class="text-slate-800"><?= __('admin.dns.password_fields') ?></strong><br>
+                    <?= __('admin.dns.password_desc') ?>
                 </li>
             </ul>
         </section>

@@ -5,11 +5,11 @@ require_once __DIR__ . '/../../../resource/js/auth.php';
 function admin_request_status_label(int $status): string
 {
     return match ($status) {
-        1 => 'Pending',
-        2 => 'Approved',
-        3 => 'Rejected',
-        4 => 'Revoked',
-        default => 'Unknown',
+        1 => __('admin.requests.status_pending'),
+        2 => __('admin.requests.status_approved'),
+        3 => __('admin.requests.status_rejected'),
+        4 => __('admin.requests.status_revoked'),
+        default => __('admin.requests.status_unknown'),
     };
 }
 
@@ -119,12 +119,12 @@ $rows = $pdo->query(
      ORDER BY dr.id DESC'
 )->fetchAll();
 
-admin_dashboard_render('Requests', 'requests', function () use ($rows, $error, $message): void {
+admin_dashboard_render(__('admin.requests.title'), 'requests', function () use ($rows, $error, $message): void {
     ?>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
-            <h1 class="text-2xl font-semibold text-slate-900">申请</h1>
-            <p class="mt-3 text-sm text-slate-600">批准会更新域名池状态。</p>
+            <h1 class="text-2xl font-semibold text-slate-900"><?= __('admin.requests.heading') ?></h1>
+            <p class="mt-3 text-sm text-slate-600"><?= __('admin.requests.desc') ?></p>
 
             <?php if ($error): ?>
                 <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= htmlspecialchars($error) ?></div>
@@ -137,11 +137,11 @@ admin_dashboard_render('Requests', 'requests', function () use ($rows, $error, $
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-slate-500">
                         <tr>
-                            <th class="px-4 py-3 font-medium">用户</th>
-                            <th class="px-4 py-3 font-medium">已申请的完整域名</th>
-                            <th class="px-4 py-3 font-medium">理由</th>
-                            <th class="px-4 py-3 font-medium">状态</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
+                            <th class="px-4 py-3 font-medium"><?= __('admin.requests.user') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('admin.requests.domain') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('admin.requests.purpose') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('admin.requests.status') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('admin.requests.actions') ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -176,11 +176,11 @@ admin_dashboard_render('Requests', 'requests', function () use ($rows, $error, $
         </section>
 
         <section class="panel">
-            <h2 class="text-xl font-semibold text-slate-900">申请说明</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('admin.requests.info_heading') ?></h2>
             <ul class="mt-4 space-y-3 text-sm text-slate-600">
-                <li>记录来源于 `domain_requests` 表。</li>
-                <li>Approve 后，回写 `domain_requests.domain_id` 并更新  `domains` 表。</li>
-                <li>Reject or revoke 会释放已分配的域名。</li>
+                <li><?= __('admin.requests.info_line1') ?></li>
+                <li><?= __('admin.requests.info_line2') ?></li>
+                <li><?= __('admin.requests.info_line3') ?></li>
             </ul>
         </section>
     </div>

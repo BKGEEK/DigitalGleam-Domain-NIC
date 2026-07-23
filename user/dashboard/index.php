@@ -17,26 +17,26 @@ $stmt = $pdo->prepare("SELECT d.*, r.root_domain FROM domains d INNER JOIN root_
 $stmt->execute([':user_id' => (int) $_SESSION['user_id'], ':grace' => $renewalGraceMonths]);
 $expiringDomains = $stmt->fetchAll();
 
-user_render('用户概览', 'dashboard', function () use ($user, $requestsCount, $domainsCount, $hasWhois, $announcements, $expiringDomains, $renewalMonths): void {
+user_render(__('user.dashboard.title'), 'dashboard', function () use ($user, $requestsCount, $domainsCount, $hasWhois, $announcements, $expiringDomains, $renewalMonths): void {
     ?>
     <div class="grid gap-4 md:grid-cols-3">
         <div class="panel">
-            <div class="text-sm text-slate-500">申请数量</div>
+            <div class="text-sm text-slate-500"><?= __('user.dashboard.requests_count') ?></div>
             <div class="mt-2 text-3xl font-semibold text-slate-900"><?= (int) $requestsCount ?></div>
         </div>
         <div class="panel">
-            <div class="text-sm text-slate-500">域名数量</div>
+            <div class="text-sm text-slate-500"><?= __('user.dashboard.domains_count') ?></div>
             <div class="mt-2 text-3xl font-semibold text-slate-900"><?= (int) $domainsCount ?></div>
         </div>
         <div class="panel">
-            <div class="text-sm text-slate-500">whois 状态</div>
-            <div class="mt-2 text-3xl font-semibold text-slate-900"><?= $hasWhois ? '已填写' : '未填写' ?></div>
+            <div class="text-sm text-slate-500"><?= __('user.dashboard.whois_status') ?></div>
+            <div class="mt-2 text-3xl font-semibold text-slate-900"><?= $hasWhois ? __('user.dashboard.whois_filled') : __('user.dashboard.whois_empty') ?></div>
         </div>
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
-            <h2 class="text-xl font-semibold text-slate-900">公告</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('user.dashboard.announcements') ?></h2>
             <div class="mt-4 space-y-4">
                 <?php foreach ($announcements as $row): ?>
                     <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -49,28 +49,28 @@ user_render('用户概览', 'dashboard', function () use ($user, $requestsCount,
         </section>
 
         <section class="panel">
-            <h2 class="text-xl font-semibold text-slate-900">资料状态</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('user.dashboard.profile_status') ?></h2>
             <div class="mt-4 text-sm text-slate-600">
-                <div>邮箱：<?= htmlspecialchars($user['email'] ?? '') ?></div>
-                <div class="mt-2">手机号：<?= htmlspecialchars($user['phone'] ?? '') ?></div>
-                <div class="mt-2">whois 联系人：<?= htmlspecialchars($user['whois_name'] ?? '') ?></div>
-                <div class="mt-2">whois 邮箱：<?= htmlspecialchars($user['whois_email'] ?? '') ?></div>
-                <div class="mt-2">whois 电话：<?= htmlspecialchars($user['whois_phone'] ?? '') ?></div>
+                <div><?= __('user.dashboard.email') ?><?= htmlspecialchars($user['email'] ?? '') ?></div>
+                <div class="mt-2"><?= __('user.dashboard.phone') ?><?= htmlspecialchars($user['phone'] ?? '') ?></div>
+                <div class="mt-2"><?= __('user.dashboard.whois_name') ?><?= htmlspecialchars($user['whois_name'] ?? '') ?></div>
+                <div class="mt-2"><?= __('user.dashboard.whois_email') ?><?= htmlspecialchars($user['whois_email'] ?? '') ?></div>
+                <div class="mt-2"><?= __('user.dashboard.whois_phone') ?><?= htmlspecialchars($user['whois_phone'] ?? '') ?></div>
             </div>
-            <a href="/user/profile/" class="btn-primary mt-6">完善资料</a>
+            <a href="/user/profile/" class="btn-primary mt-6"><?= __('user.dashboard.complete_profile') ?></a>
         </section>
     </div>
 
     <?php if (!empty($expiringDomains)): ?>
         <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <div class="text-sm font-medium text-amber-800">即将到期的域名</div>
+            <div class="text-sm font-medium text-amber-800"><?= __('user.dashboard.expiring_domains') ?></div>
             <ul class="mt-2 space-y-1">
                 <?php foreach ($expiringDomains as $ed): ?>
                     <li class="text-sm text-amber-700">
                         <?= htmlspecialchars(dns_domain_display_name($ed)) ?>
-                        - 到期：<?= htmlspecialchars(date('Y-m-d', strtotime($ed['expires_at']))) ?>
+                        - <?= __('user.dashboard.expires') ?><?= htmlspecialchars(date('Y-m-d', strtotime($ed['expires_at']))) ?>
                         <?php if ($renewalMonths > 0): ?>
-                            <a href="/user/domains/" class="ml-2 font-medium text-amber-800 underline hover:text-amber-900">去续期</a>
+                            <a href="/user/domains/" class="ml-2 font-medium text-amber-800 underline hover:text-amber-900"><?= __('user.dashboard.go_renew') ?></a>
                         <?php endif; ?>
                     </li>
                 <?php endforeach; ?>

@@ -1,11 +1,12 @@
 <?php
 
+require_once __DIR__ . '/../../lang/helper.php';
 require_once __DIR__ . '/../../module/whois/api.php';
 
 $query = trim((string) ($_GET['query'] ?? ''));
 
 if ($query === '') {
-    whois_api_json(false, '缺少查询参数 query', [], 400);
+    whois_api_json(false, __('whois.api.missing_query'), [], 400);
 }
 
 $result = whois_api_lookup($query);

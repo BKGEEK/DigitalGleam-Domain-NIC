@@ -1,8 +1,9 @@
 ﻿<?php
 require_once __DIR__ . '/module/dns/service.php';
+require_once __DIR__ . '/lang/helper.php';
 
 $config = require __DIR__ . '/config/config.php';
-$pageTitle = $config['app']['name'] ?? '数星二级域名分发';
+$pageTitle = $config['app']['name'] ?? __('app.name');
 
 $domainConfig = $config['domain'] ?? [];
 $minLength = max(1, (int) ($domainConfig['min_length'] ?? 3));
@@ -64,7 +65,7 @@ if ($stmt && ($row = $stmt->fetch())) {
 }
 ?>
 <!doctype html>
-<html lang="zh-CN">
+<html lang="<?= lang_current() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -127,13 +128,13 @@ if ($stmt && ($row = $stmt->fetch())) {
             <div class="page-wrap py-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
-                        <span class="text-xl font-semibold text-brand-600"><?= htmlspecialchars($config['app']['name'] ?? '数星二级域名分发') ?></span>
+                        <span class="text-xl font-semibold text-brand-600"><?= htmlspecialchars($config['app']['name'] ?? __('app.name')) ?></span>
                     </div>
                     <div class="flex flex-wrap items-center gap-4 text-sm">
-                        <a href="/whois/index.php" class="text-slate-600 hover:text-brand-600 transition-colors">WHOIS 查询</a>
-                        <a href="#domain" class="text-slate-600 hover:text-brand-600 transition-colors">域名检索</a>
-                        <a href="#notice" class="text-slate-600 hover:text-brand-600 transition-colors">公告</a>
-                        <a href="/user/login/" class="rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors">用户登录</a>
+                        <a href="/whois/index.php" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.whois') ?></a>
+                        <a href="#domain" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.domain_search') ?></a>
+                        <a href="#notice" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.announcement') ?></a>
+                        <a href="/user/login/" class="rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"><?= __('nav.user_login') ?></a>
                     </div>
                 </div>
             </div>
@@ -143,45 +144,45 @@ if ($stmt && ($row = $stmt->fetch())) {
         <section id="domain" class="border-b border-slate-200 bg-white">
             <div class="page-wrap py-12">
                 <div class="mx-auto max-w-3xl">
-                    <div class="text-sm font-medium text-brand-600"><?= htmlspecialchars($config['app']['name'] ?? '数星二级域名分发') ?></div>
-                    <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900">域名前缀可用性检索</h1>
-                    <p class="mt-4 text-sm leading-6 text-slate-600">输入前缀，选择已配置的主域名后缀，系统会检查该组合是否已在域名池中存在。</p>
+                    <div class="text-sm font-medium text-brand-600"><?= htmlspecialchars($config['app']['name'] ?? __('app.name')) ?></div>
+                    <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900"><?= __('index.title') ?></h1>
+                    <p class="mt-4 text-sm leading-6 text-slate-600"><?= __('index.subtitle') ?></p>
 
                     <form method="get" class="mt-8 grid gap-4 lg:grid-cols-[1fr_260px_140px]">
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">前缀</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('index.prefix') ?></label>
                             <input name="prefix" value="<?= htmlspecialchars($prefix) ?>" placeholder="api / cdn / img" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all">
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">主域名后缀</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('index.root_domain') ?></label>
                             <select name="root_domain_id" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all">
-                                <option value="">请选择</option>
+                                <option value=""><?= __('index.select_placeholder') ?></option>
                                 <?php foreach ($availableRoots as $root): ?>
                                     <option value="<?= (int) $root['id'] ?>" <?= $selectedRootId === (int) $root['id'] ? 'selected' : '' ?>><?= htmlspecialchars($root['root_domain']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="flex items-end">
-                            <button type="submit" class="btn-primary w-full justify-center">检索</button>
+                            <button type="submit" class="btn-primary w-full justify-center"><?= __('index.search') ?></button>
                         </div>
                     </form>
 
                     <?php if ($searchResult): ?>
                         <div class="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                            <div class="text-sm text-slate-500">检索结果</div>
+                            <div class="text-sm text-slate-500"><?= __('index.result') ?></div>
                             <div class="mt-2 text-2xl font-semibold text-slate-900"><?= htmlspecialchars($searchResult['candidate']) ?></div>
                             <div class="mt-3 text-sm text-slate-600">
-                                主域名：<?= htmlspecialchars($searchResult['root_domain']) ?>，Provider：<?= htmlspecialchars($searchResult['provider']) ?>
+                                <?= __('index.root_domain_label') ?><?= htmlspecialchars($searchResult['root_domain']) ?>，<?= __('index.provider_label') ?><?= htmlspecialchars($searchResult['provider']) ?>
                             </div>
                             <div class="mt-4">
                                 <span class="rounded-full px-3 py-1 text-xs font-medium <?= $searchResult['status'] === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
                                     <?= match ($searchResult['status']) {
-                                        'has_dot' => '不支持多级域名',
-                                        'invalid_chars' => '前缀只能包含字母和数字',
-                                        'too_short' => "前缀不能少于 {$minLength} 个字符",
-                                        'too_long' => "前缀不能超过 {$maxLength} 个字符",
-                                        'occupied' => '已占用',
-                                        'available' => '可用',
+                                        'has_dot' => __('index.status.has_dot'),
+                                        'invalid_chars' => __('index.status.invalid_chars'),
+                                        'too_short' => __('index.status.too_short', ['min' => $minLength]),
+                                        'too_long' => __('index.status.too_long', ['max' => $maxLength]),
+                                        'occupied' => __('index.status.occupied'),
+                                        'available' => __('index.status.available'),
                                     } ?>
                                 </span>
                             </div>
@@ -195,16 +196,16 @@ if ($stmt && ($row = $stmt->fetch())) {
         <section id="notice" class="page-wrap py-8">
             <div class="grid gap-6 md:grid-cols-3">
                 <div class="panel">
-                    <h2 class="text-lg font-semibold text-slate-900">简约清新风</h2>
-                    <p class="mt-3 text-sm leading-6 text-slate-600">整体采用轻量后台式布局，信息清晰，适合长期管理和快速检索。</p>
+                    <h2 class="text-lg font-semibold text-slate-900"><?= __('index.card1_title') ?></h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-600"><?= __('index.card1_desc') ?></p>
                 </div>
                 <div class="panel">
-                    <h2 class="text-lg font-semibold text-slate-900">主域名池</h2>
-                    <p class="mt-3 text-sm leading-6 text-slate-600">支持按主域名统一管理子域名前缀，后续可继续接入 DNS 真实解析逻辑。</p>
+                    <h2 class="text-lg font-semibold text-slate-900"><?= __('index.card2_title') ?></h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-600"><?= __('index.card2_desc') ?></p>
                 </div>
                 <div class="panel">
-                    <h2 class="text-lg font-semibold text-slate-900">公告同步</h2>
-                    <p class="mt-3 text-sm leading-6 text-slate-600">首页公告直接读取后台发布内容，方便站点维护和临时通知。</p>
+                    <h2 class="text-lg font-semibold text-slate-900"><?= __('index.card3_title') ?></h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-600"><?= __('index.card3_desc') ?></p>
                 </div>
             </div>
         </section>
@@ -213,14 +214,14 @@ if ($stmt && ($row = $stmt->fetch())) {
         <section class="page-wrap py-6">
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="panel">
-                    <div class="text-sm font-medium text-brand-600">公告</div>
-                    <h2 class="mt-2 text-xl font-semibold text-slate-900">站点通知</h2>
-                    <p class="mt-4 text-sm leading-7 text-slate-600"><?= htmlspecialchars($announcement !== '' ? $announcement : '暂无公告。') ?></p>
+                    <div class="text-sm font-medium text-brand-600"><?= __('nav.announcement') ?></div>
+                    <h2 class="mt-2 text-xl font-semibold text-slate-900"><?= __('index.notice_title') ?></h2>
+                    <p class="mt-4 text-sm leading-7 text-slate-600"><?= htmlspecialchars($announcement !== '' ? $announcement : __('index.notice_empty')) ?></p>
                 </div>
                 <div class="panel">
-                    <div class="text-sm font-medium text-brand-600">介绍</div>
-                    <h2 class="mt-2 text-xl font-semibold text-slate-900">项目说明</h2>
-                    <p class="mt-4 text-sm leading-7 text-slate-600">这是一个 PHP + Tailwind + MySQL 的二级域名分发源码，当前已经具备首页检索、WHOIS 查询、后台管理和域名池基础结构。</p>
+                    <div class="text-sm font-medium text-brand-600"><?= __('index.intro_label') ?></div>
+                    <h2 class="mt-2 text-xl font-semibold text-slate-900"><?= __('index.intro_title') ?></h2>
+                    <p class="mt-4 text-sm leading-7 text-slate-600"><?= __('index.intro_desc') ?></p>
                 </div>
             </div>
         </section>
@@ -228,8 +229,8 @@ if ($stmt && ($row = $stmt->fetch())) {
 
     <footer class="border-t border-slate-200 bg-white mt-8">
         <div class="page-wrap py-6 text-sm text-slate-500">
-            <div>© <?= date('Y') ?> <?= htmlspecialchars($config['app']['name'] ?? '数星二级域名分发') ?></div>
-            <div class="mt-1">简约 · 清新 · 可扩展</div>
+            <div>© <?= date('Y') ?> <?= htmlspecialchars($config['app']['name'] ?? __('app.name')) ?></div>
+            <div class="mt-1"><?= __('footer.motto') ?></div>
         </div>
     </footer>
 </body>

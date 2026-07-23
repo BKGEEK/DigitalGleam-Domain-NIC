@@ -32,19 +32,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (str_contains($subdomain, '.')) {
-                throw new RuntimeException('仅支持二级域名，子域名前缀不能包含点号（.）。');
+                throw new RuntimeException(__('user.requests.error_has_dot'));
             }
 
             if (!$allowUnicode && !preg_match('/^[a-zA-Z0-9]+$/', $subdomain)) {
-                throw new RuntimeException('子域名前缀只能包含字母和数字。');
+                throw new RuntimeException(__('user.requests.error_invalid_chars'));
             }
 
             if (mb_strlen($subdomain) > $maxLength) {
-                throw new RuntimeException("子域名前缀不能超过 {$maxLength} 个字符。");
+                throw new RuntimeException(__('user.requests.error_too_long', ['max' => $maxLength]));
             }
 
             if (mb_strlen($subdomain) < $minLength) {
-                throw new RuntimeException("子域名前缀不能少于 {$minLength} 个字符。");
+                throw new RuntimeException(__('user.requests.error_too_short', ['min' => $minLength]));
             }
 
             $maxDomains = (int) ($domainConfig['max_domains_per_user'] ?? 3);
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $countStmt->execute([':user_id' => $userId]);
                 $currentCount = (int) $countStmt->fetchColumn();
                 if ($currentCount >= $maxDomains) {
-                    throw new RuntimeException("每人最多持有 {$maxDomains} 个域名。");
+                    throw new RuntimeException(__('user.requests.error_max_domains', ['max' => $maxDomains]));
                 }
             }
 
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             $pdo->commit();
-            $message = $autoApprove ? 'Submitted.' : '已提交，等待管理员审核。';
+            $message = $autoApprove ? 'Submitted.' : __('user.requests.success_submitted');
         } elseif ($action === 'revoke') {
             $id = (int) ($_POST['id'] ?? 0);
             $pdo->beginTransaction();
@@ -159,8 +159,8 @@ user_render('Requests', 'requests', function () use ($rows, $rootDomains, $error
     ?>
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="panel">
-            <h1 class="text-2xl font-semibold text-slate-900">申请</h1>
-            <p class="mt-3 text-sm text-slate-600">提交前，WHOIS 信息必须完整。</p>
+            <h1 class="text-2xl font-semibold text-slate-900"><?= __('user.requests.heading') ?></h1>
+            <p class="mt-3 text-sm text-slate-600"><?= __('user.requests.desc') ?></p>
 
             <?php if ($error): ?>
                 <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= htmlspecialchars($error) ?></div>
@@ -173,10 +173,10 @@ user_render('Requests', 'requests', function () use ($rows, $rootDomains, $error
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-slate-500">
                         <tr>
-                            <th class="px-4 py-3 font-medium">域名</th>
-                            <th class="px-4 py-3 font-medium">理由</th>
-                            <th class="px-4 py-3 font-medium">状态</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.requests.requested_domain') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.requests.purpose') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.requests.status') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.requests.actions') ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -184,7 +184,7 @@ user_render('Requests', 'requests', function () use ($rows, $rootDomains, $error
                             <tr>
                                 <td class="px-4 py-3 font-medium text-slate-900"><?= htmlspecialchars($row['requested_domain']) ?></td>
                                 <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
-                                <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars(match ((int) $row['status']) {1 => 'Pending', 2 => 'Approved', 3 => 'Rejected', 4 => 'Revoked', default => 'Unknown'}) ?></td>
+                                <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars(match ((int) $row['status']) {1 => __('user.requests.status_pending'), 2 => __('user.requests.status_approved'), 3 => __('user.requests.status_rejected'), 4 => __('user.requests.status_revoked'), default => __('user.requests.status_unknown')}) ?></td>
                                 <td class="px-4 py-3">
                                     <?php if ((int) $row['status'] === 1): ?>
                                         <form method="post" class="inline">
@@ -202,31 +202,31 @@ user_render('Requests', 'requests', function () use ($rows, $rootDomains, $error
         </section>
 
         <section class="panel">
-            <h2 class="text-xl font-semibold text-slate-900">提交</h2>
+            <h2 class="text-xl font-semibold text-slate-900"><?= __('user.requests.submit_heading') ?></h2>
             <form method="post" class="mt-6 space-y-4">
                 <input type="hidden" name="action" value="create">
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">主域名</label>
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.requests.root_domain') ?></label>
                     <select name="root_domain_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
-                        <option value="">请选择</option>
+                        <option value=""><?= __('user.requests.select_placeholder') ?></option>
                         <?php foreach ($rootDomains as $root): ?>
                             <option value="<?= (int) $root['id'] ?>"><?= htmlspecialchars($root['root_domain']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">子域名前缀</label>
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.requests.subdomain') ?></label>
                     <input name="subdomain" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="api">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">理由</label>
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.requests.purpose') ?></label>
                     <input name="purpose" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="Purpose">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">备注</label>
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('user.requests.remark') ?></label>
                     <textarea name="remark" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></textarea>
                 </div>
-                <button type="submit" class="btn-primary w-full justify-center">提交</button>
+                <button type="submit" class="btn-primary w-full justify-center"><?= __('user.requests.submit') ?></button>
             </form>
         </section>
     </div>

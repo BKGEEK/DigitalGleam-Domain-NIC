@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if (!$ownsDomain) {
-        $redirect .= '?message=' . urlencode('域名不属于当前用户') . '&type=error';
+        $redirect .= '?message=' . urlencode(__('user.domains.error_not_owned')) . '&type=error';
     } elseif ($action === 'add_ns' && $domainId > 0) {
         $nameserver = trim($_POST['nameserver'] ?? '');
         $result = dns_ns_record_add($domainId, $nameserver);
@@ -100,33 +100,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     } elseif ($action === 'renew' && $domainId > 0) {
         if ($renewalMonths <= 0) {
-            $redirect .= '?message=' . urlencode('续期功能未启用') . '&type=error';
+            $redirect .= '?message=' . urlencode(__('user.domains.error_renew_disabled')) . '&type=error';
         } else {
             $stmt = $pdo->prepare('SELECT * FROM domains WHERE id = :id AND assigned_to = :user_id LIMIT 1');
             $stmt->execute([':id' => $domainId, ':user_id' => $userId]);
             $domain = $stmt->fetch();
             if (!$domain) {
-                $redirect .= '?message=' . urlencode('域名不存在') . '&type=error';
+                $redirect .= '?message=' . urlencode(__('user.domains.error_not_found')) . '&type=error';
             } else {
                 $expiresAt = $domain['expires_at'] ?? null;
                 $now = time();
                 $canRenew = false;
                 if ($expiresAt === null) {
                     $canRenew = false;
-                    $redirect .= '?message=' . urlencode('该域名永久有效，无需续期') . '&type=error';
+                    $redirect .= '?message=' . urlencode(__('user.domains.error_permanent')) . '&type=error';
                 } else {
                     $expTs = strtotime($expiresAt);
                     $graceStart = strtotime("-{$renewalGraceMonths} months", $expTs);
                     $canRenew = $now >= $graceStart;
                     if (!$canRenew) {
-                        $redirect .= '?message=' . urlencode('尚未到续期时间') . '&type=error';
+                        $redirect .= '?message=' . urlencode(__('user.domains.error_not_yet')) . '&type=error';
                     }
                 }
                 if ($canRenew) {
                     $newExpiresAt = date('Y-m-d H:i:s', strtotime("+{$renewalMonths} months", $expTs));
                     $stmt = $pdo->prepare('UPDATE domains SET expires_at = :expires_at, updated_at = NOW() WHERE id = :id');
                     $stmt->execute([':id' => $domainId, ':expires_at' => $newExpiresAt]);
-                    $redirect .= '?message=' . urlencode('续期成功，新到期时间：' . $newExpiresAt) . '&type=success';
+                    $redirect .= '?message=' . urlencode(__('user.domains.renew_success', ['date' => $newExpiresAt])) . '&type=success';
                 }
             }
         }
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-$title = $manageDomain ? ($manageType === 'ns' ? 'NS' : ($manageType === 'txt' ? 'TXT' : 'DNS')) . ' 记录管理 - ' . htmlspecialchars(dns_domain_display_name($manageDomain)) : '我的域名';
+$title = $manageDomain ? ($manageType === 'ns' ? __('user.domains.ns_management') : ($manageType === 'txt' ? __('user.domains.txt_management') : __('user.domains.dns_management'))) . ' - ' . htmlspecialchars(dns_domain_display_name($manageDomain)) : __('user.domains.title');
 $activeKey = 'domains';
 $isCloudflare = $manageDomain && $manageDomain['provider'] === 'cloudflare';
 
@@ -146,11 +146,11 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
         <?php if ($manageDomain && $manageType === 'ns'): ?>
             <div class="flex items-center justify-between">
                 <div>
-                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; 返回域名列表</a>
-                    <h1 class="mt-2 text-2xl font-semibold text-slate-900">NS 记录管理</h1>
+                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; <?= __('user.domains.back') ?></a>
+                    <h1 class="mt-2 text-2xl font-semibold text-slate-900"><?= __('user.domains.ns_management') ?></h1>
                     <p class="mt-1 text-sm text-slate-600">
-                        域名：<strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
-                        （<?= count($nsRecords) ?>/<?= $maxNsRecords ?> 条记录）
+                        <?= __('user.domains.domain_label') ?><strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
+                        （<?= count($nsRecords) ?>/<?= $maxNsRecords ?> <?= __('user.domains.record_count') ?>）
                     </p>
                 </div>
             </div>
@@ -167,14 +167,14 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                         <tr>
                             <th class="px-4 py-3 font-medium">#</th>
                             <th class="px-4 py-3 font-medium">Nameserver</th>
-                            <th class="px-4 py-3 font-medium">同步状态</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.sync_status') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.actions') ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if (empty($nsRecords)): ?>
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-slate-400">暂无 NS 记录</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-slate-400"><?= __('user.domains.no_ns_records') ?></td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($nsRecords as $i => $ns): ?>
@@ -183,17 +183,17 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                     <td class="px-4 py-3 font-mono text-slate-900"><?= htmlspecialchars($ns['nameserver']) ?></td>
                                     <td class="px-4 py-3">
                                         <?php if (!empty($ns['provider_record_id'])): ?>
-                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">已同步</span>
+                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700"><?= __('user.domains.synced') ?></span>
                                         <?php else: ?>
-                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700">仅本地</span>
+                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700"><?= __('user.domains.local_only') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <form method="post" action="/user/domains/?manage_ns=<?= $manageDomainId ?>" onsubmit="return confirm('确定删除这条 NS 记录？')">
+                                        <form method="post" action="/user/domains/?manage_ns=<?= $manageDomainId ?>" onsubmit="return confirm('<?= __('user.domains.confirm_delete_ns') ?>')">
                                             <input type="hidden" name="action" value="delete_ns">
                                             <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                                             <input type="hidden" name="record_id" value="<?= (int) $ns['id'] ?>">
-                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">删除</button>
+                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800"><?= __('user.domains.delete') ?></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -205,31 +205,31 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
 
             <?php if ($maxNsRecords <= 0 || count($nsRecords) < $maxNsRecords): ?>
                 <div class="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
-                    <h2 class="text-base font-semibold text-slate-900">添加 NS 记录</h2>
+                    <h2 class="text-base font-semibold text-slate-900"><?= __('user.domains.add_ns') ?></h2>
                     <form method="post" action="/user/domains/?manage_ns=<?= $manageDomainId ?>" class="mt-4 flex flex-wrap items-end gap-4">
                         <input type="hidden" name="action" value="add_ns">
                         <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                         <div class="flex-1">
                             <label class="block text-sm font-medium text-slate-700">Nameserver</label>
-                            <input type="text" name="nameserver" required placeholder="例如 ns1.example.com" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <input type="text" name="nameserver" required placeholder="<?= __('user.domains.ns_placeholder') ?>" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                         </div>
-                        <button type="submit" class="btn-primary">添加</button>
+                        <button type="submit" class="btn-primary"><?= __('user.domains.add') ?></button>
                     </form>
                 </div>
             <?php else: ?>
                 <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                    已达到最大记录数上限（<?= $maxNsRecords ?> 条）。如需修改，请先删除现有记录。
+                    <?= __('user.domains.max_records_reached', ['max' => $maxNsRecords]) ?>
                 </div>
             <?php endif; ?>
 
         <?php elseif ($manageDomain && $manageType === 'txt'): ?>
             <div class="flex items-center justify-between">
                 <div>
-                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; 返回域名列表</a>
-                    <h1 class="mt-2 text-2xl font-semibold text-slate-900">TXT 记录管理</h1>
+                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; <?= __('user.domains.back') ?></a>
+                    <h1 class="mt-2 text-2xl font-semibold text-slate-900"><?= __('user.domains.txt_management') ?></h1>
                     <p class="mt-1 text-sm text-slate-600">
-                        域名：<strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
-                        （<?= count($txtRecords) ?>/<?= $maxTxtRecords ?> 条记录）
+                        <?= __('user.domains.domain_label') ?><strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
+                        （<?= count($txtRecords) ?>/<?= $maxTxtRecords ?> <?= __('user.domains.record_count') ?>）
                     </p>
                 </div>
             </div>
@@ -245,15 +245,15 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                     <thead class="bg-slate-50 text-left text-slate-500">
                         <tr>
                             <th class="px-4 py-3 font-medium">#</th>
-                            <th class="px-4 py-3 font-medium">记录值</th>
-                            <th class="px-4 py-3 font-medium">同步状态</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.value') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.sync_status') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.actions') ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if (empty($txtRecords)): ?>
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-slate-400">暂无 TXT 记录</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-slate-400"><?= __('user.domains.no_txt_records') ?></td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($txtRecords as $i => $tr): ?>
@@ -262,17 +262,17 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                     <td class="px-4 py-3 font-mono text-slate-900 break-all"><?= htmlspecialchars($tr['value']) ?></td>
                                     <td class="px-4 py-3">
                                         <?php if (!empty($tr['provider_record_id'])): ?>
-                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">已同步</span>
+                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700"><?= __('user.domains.synced') ?></span>
                                         <?php else: ?>
-                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700">仅本地</span>
+                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700"><?= __('user.domains.local_only') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <form method="post" action="/user/domains/?manage_txt=<?= $manageDomainId ?>" onsubmit="return confirm('确定删除这条 TXT 记录？')">
+                                        <form method="post" action="/user/domains/?manage_txt=<?= $manageDomainId ?>" onsubmit="return confirm('<?= __('user.domains.confirm_delete_txt') ?>')">
                                             <input type="hidden" name="action" value="delete_txt">
                                             <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                                             <input type="hidden" name="record_id" value="<?= (int) $tr['id'] ?>">
-                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">删除</button>
+                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800"><?= __('user.domains.delete') ?></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -284,32 +284,32 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
 
             <?php if ($maxTxtRecords <= 0 || count($txtRecords) < $maxTxtRecords): ?>
                 <div class="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
-                    <h2 class="text-base font-semibold text-slate-900">添加 TXT 记录</h2>
+                    <h2 class="text-base font-semibold text-slate-900"><?= __('user.domains.add_txt') ?></h2>
                     <form method="post" action="/user/domains/?manage_txt=<?= $manageDomainId ?>" class="mt-4 flex flex-wrap items-end gap-4">
                         <input type="hidden" name="action" value="add_txt">
                         <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                         <div class="flex-1">
-                            <label class="block text-sm font-medium text-slate-700">记录值</label>
-                            <input type="text" name="value" required placeholder="例如 v=spf1 include:_spf.google.com ~all" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <label class="block text-sm font-medium text-slate-700"><?= __('user.domains.value') ?></label>
+                            <input type="text" name="value" required placeholder="<?= __('user.domains.txt_placeholder') ?>" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                         </div>
-                        <button type="submit" class="btn-primary">添加</button>
+                        <button type="submit" class="btn-primary"><?= __('user.domains.add') ?></button>
                     </form>
                 </div>
             <?php else: ?>
                 <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                    已达到最大记录数上限（<?= $maxTxtRecords ?> 条）。如需修改，请先删除现有记录。
+                    <?= __('user.domains.max_records_reached', ['max' => $maxTxtRecords]) ?>
                 </div>
             <?php endif; ?>
 
         <?php elseif ($manageDomain && $manageType === 'dns'): ?>
             <div class="flex items-center justify-between">
                 <div>
-                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; 返回域名列表</a>
-                    <h1 class="mt-2 text-2xl font-semibold text-slate-900">DNS 记录管理</h1>
+                    <a href="/user/domains/" class="text-sm text-brand-600 hover:text-brand-700">&larr; <?= __('user.domains.back') ?></a>
+                    <h1 class="mt-2 text-2xl font-semibold text-slate-900"><?= __('user.domains.dns_management') ?></h1>
                     <p class="mt-1 text-sm text-slate-600">
-                        域名：<strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
+                        <?= __('user.domains.domain_label') ?><strong><?= htmlspecialchars(dns_domain_display_name($manageDomain)) ?></strong>
                         <?php if ($isCloudflare): ?>
-                            <span class="ml-2 inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">Cloudflare CDN 可用</span>
+                            <span class="ml-2 inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700"><?= __('user.domains.cloudflare_available') ?></span>
                         <?php endif; ?>
                     </p>
                     <div class="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
@@ -344,18 +344,18 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                     <thead class="bg-slate-50 text-left text-slate-500">
                         <tr>
                             <th class="px-4 py-3 font-medium">#</th>
-                            <th class="px-4 py-3 font-medium">类型</th>
-                            <th class="px-4 py-3 font-medium">名称</th>
-                            <th class="px-4 py-3 font-medium">值</th>
-                            <th class="px-4 py-3 font-medium">CDN</th>
-                            <th class="px-4 py-3 font-medium">同步状态</th>
-                            <th class="px-4 py-3 font-medium">操作</th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.type') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.name') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.value_short') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.cdn') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.sync_status') ?></th>
+                            <th class="px-4 py-3 font-medium"><?= __('user.domains.actions') ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if (empty($dnsRecords)): ?>
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-slate-400">暂无 DNS 记录</td>
+                                <td colspan="7" class="px-4 py-8 text-center text-slate-400"><?= __('user.domains.no_dns_records') ?></td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($dnsRecords as $i => $dr): ?>
@@ -367,9 +367,9 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                     <td class="px-4 py-3">
                                         <?php if ($isCloudflare): ?>
                                             <?php if (!empty($dr['proxied'])): ?>
-                                                <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">开启</span>
+                                                <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700"><?= __('user.domains.enabled') ?></span>
                                             <?php else: ?>
-                                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-500">关闭</span>
+                                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-500"><?= __('user.domains.disabled') ?></span>
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <span class="text-xs text-slate-400">-</span>
@@ -377,17 +377,17 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                     </td>
                                     <td class="px-4 py-3">
                                         <?php if (!empty($dr['provider_record_id'])): ?>
-                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">已同步</span>
+                                            <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700"><?= __('user.domains.synced') ?></span>
                                         <?php else: ?>
-                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700">仅本地</span>
+                                            <span class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700"><?= __('user.domains.local_only') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <form method="post" action="/user/domains/?manage_dns=<?= $manageDomainId ?>" onsubmit="return confirm('确定删除这条 DNS 记录？')">
+                                        <form method="post" action="/user/domains/?manage_dns=<?= $manageDomainId ?>" onsubmit="return confirm('<?= __('user.domains.confirm_delete_dns') ?>')">
                                             <input type="hidden" name="action" value="delete_dns">
                                             <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                                             <input type="hidden" name="record_id" value="<?= (int) $dr['id'] ?>">
-                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">删除</button>
+                                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800"><?= __('user.domains.delete') ?></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -412,12 +412,12 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
             ?>
             <?php if ($canAdd): ?>
                 <div class="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
-                    <h2 class="text-base font-semibold text-slate-900">添加 DNS 记录</h2>
+                    <h2 class="text-base font-semibold text-slate-900"><?= __('user.domains.add_dns') ?></h2>
                     <form method="post" action="/user/domains/?manage_dns=<?= $manageDomainId ?>" class="mt-4 flex flex-wrap items-end gap-4">
                         <input type="hidden" name="action" value="add_dns">
                         <input type="hidden" name="domain_id" value="<?= $manageDomainId ?>">
                         <div class="flex-1">
-                            <label class="block text-sm font-medium text-slate-700">类型</label>
+                            <label class="block text-sm font-medium text-slate-700"><?= __('user.domains.type') ?></label>
                             <select name="dns_type" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                                 <?php if ($enableARecords): ?><option value="A">A</option><?php endif; ?>
                                 <?php if ($enableAaaaRecords): ?><option value="AAAA">AAAA</option><?php endif; ?>
@@ -425,31 +425,31 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                             </select>
                         </div>
                         <div class="flex-1">
-                            <label class="block text-sm font-medium text-slate-700">名称</label>
-                            <input type="text" name="dns_name" value="@" placeholder="@ 或子域名前缀" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <label class="block text-sm font-medium text-slate-700"><?= __('user.domains.name') ?></label>
+                            <input type="text" name="dns_name" value="@" placeholder="<?= __('user.domains.name_placeholder') ?>" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                         </div>
                         <div class="flex-[2]">
-                            <label class="block text-sm font-medium text-slate-700">值</label>
-                            <input type="text" name="dns_value" required placeholder="IP 地址（A/AAAA）或目标域名（CNAME）" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <label class="block text-sm font-medium text-slate-700"><?= __('user.domains.value_short') ?></label>
+                            <input type="text" name="dns_value" required placeholder="<?= __('user.domains.value_placeholder') ?>" class="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                         </div>
                         <?php if ($isCloudflare): ?>
                             <div class="flex items-center gap-2 pb-1">
                                 <input type="checkbox" name="dns_proxied" value="1" id="dns_proxied" class="rounded border-slate-300 text-brand-600 focus:ring-brand-100">
-                                <label for="dns_proxied" class="text-sm text-slate-700">开启 CDN（小黄云）</label>
+                                <label for="dns_proxied" class="text-sm text-slate-700"><?= __('user.domains.enable_cdn') ?></label>
                             </div>
                         <?php endif; ?>
-                        <button type="submit" class="btn-primary">添加</button>
+                        <button type="submit" class="btn-primary"><?= __('user.domains.add') ?></button>
                     </form>
                 </div>
             <?php else: ?>
                 <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                    所有记录类型均已达到上限。如需修改，请先删除现有记录。
+                    <?= __('user.domains.all_limits_reached') ?>
                 </div>
             <?php endif; ?>
 
         <?php else: ?>
-            <h1 class="text-2xl font-semibold text-slate-900">我的域名</h1>
-            <p class="mt-3 text-sm text-slate-600">这里显示当前分配给你的域名。</p>
+            <h1 class="text-2xl font-semibold text-slate-900"><?= __('user.domains.title') ?></h1>
+            <p class="mt-3 text-sm text-slate-600"><?= __('user.domains.desc') ?></p>
 
             <?php if ($message): ?>
                 <div class="mt-4 rounded-2xl border px-4 py-3 text-sm <?= $messageType === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700' ?>">
@@ -461,11 +461,11 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
 <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50 text-left text-slate-500">
                             <tr>
-                                <th class="px-4 py-3 font-medium">完整域名</th>
-                                <th class="px-4 py-3 font-medium">状态</th>
-                                <th class="px-4 py-3 font-medium">到期时间</th>
-                                <th class="px-4 py-3 font-medium">备注</th>
-                                <th class="px-4 py-3 font-medium">操作</th>
+                                <th class="px-4 py-3 font-medium"><?= __('user.domains.full_domain') ?></th>
+                                <th class="px-4 py-3 font-medium"><?= __('user.domains.status') ?></th>
+                                <th class="px-4 py-3 font-medium"><?= __('user.domains.expiry') ?></th>
+                                <th class="px-4 py-3 font-medium"><?= __('user.domains.remark') ?></th>
+                                <th class="px-4 py-3 font-medium"><?= __('user.domains.actions') ?></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -477,20 +477,20 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                 $expLabel = '';
                                 if ($expiresAt === null) {
                                     $expStatus = 'permanent';
-                                    $expLabel = '永久有效';
+                                    $expLabel = __('user.domains.permanent');
                                 } else {
                                     $expTs = strtotime($expiresAt);
                                     if ($expTs < $now) {
                                         $expStatus = 'expired';
-                                        $expLabel = '已过期';
+                                        $expLabel = __('user.domains.expired');
                                     } else {
                                         $graceStart = strtotime("-{$renewalGraceMonths} months", $expTs);
                                         if ($now >= $graceStart) {
                                             $expStatus = 'expiring';
-                                            $expLabel = '即将到期';
+                                            $expLabel = __('user.domains.expiring_soon');
                                         } else {
                                             $expStatus = 'valid';
-                                            $expLabel = '正常';
+                                            $expLabel = __('user.domains.status_normal');
                                         }
                                     }
                                 }
@@ -499,40 +499,40 @@ user_render($title, $activeKey, function () use ($rows, $manageDomain, $manageDo
                                     <td class="px-4 py-3 font-medium text-slate-900"><?= htmlspecialchars(dns_domain_display_name($row)) ?></td>
                                     <td class="px-4 py-3">
                                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <?= match ((int) $row['status']) {1 => 'bg-slate-100 text-slate-600', 2 => 'bg-emerald-100 text-emerald-700', 3 => 'bg-amber-100 text-amber-700', 0 => 'bg-red-100 text-red-700', default => 'bg-slate-100 text-slate-600'} ?>">
-                                            <?= htmlspecialchars(match ((int) $row['status']) {1 => '空闲', 2 => '使用中', 3 => '审核中', 0 => '停用', default => '未知'}) ?>
+                                            <?= htmlspecialchars(match ((int) $row['status']) {1 => __('user.domains.status_idle'), 2 => __('user.domains.status_in_use'), 3 => __('user.domains.status_reviewing'), 0 => __('user.domains.status_disabled'), default => __('user.domains.status_unknown')}) ?>
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
                                         <?php if ($expiresAt === null): ?>
-                                            <span class="text-xs text-slate-400">永久有效</span>
+                                            <span class="text-xs text-slate-400"><?= __('user.domains.permanent') ?></span>
                                         <?php else: ?>
                                             <span class="text-xs <?= $expStatus === 'expired' ? 'text-red-600 font-medium' : ($expStatus === 'expiring' ? 'text-amber-600 font-medium' : 'text-slate-500') ?>">
                                                 <?= htmlspecialchars(date('Y-m-d', strtotime($expiresAt))) ?>
                                             </span>
                                             <?php if ($expStatus === 'expired'): ?>
-                                                <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">已过期</span>
+                                                <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"><?= __('user.domains.expired') ?></span>
                                             <?php elseif ($expStatus === 'expiring'): ?>
-                                                <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">即将到期</span>
+                                                <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"><?= __('user.domains.expiring_soon') ?></span>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-3 text-slate-600"><?= htmlspecialchars($row['remark'] ?? '') ?></td>
                                     <td class="px-4 py-3">
                                         <?php if ($enableNsRecords): ?>
-                                            <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">NS 管理</a>
+                                            <a href="/user/domains/?manage_ns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800"><?= __('user.domains.manage_ns') ?></a>
                                             <span class="mx-2 text-slate-300">|</span>
                                         <?php endif; ?>
                                         <?php if ($enableTxtRecords): ?>
-                                            <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">TXT 管理</a>
+                                            <a href="/user/domains/?manage_txt=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800"><?= __('user.domains.manage_txt') ?></a>
                                             <span class="mx-2 text-slate-300">|</span>
                                         <?php endif; ?>
-                                        <a href="/user/domains/?manage_dns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800">DNS 管理</a>
+                                        <a href="/user/domains/?manage_dns=<?= (int) $row['id'] ?>" class="text-sm font-medium text-brand-600 hover:text-brand-800"><?= __('user.domains.manage_dns') ?></a>
                                         <?php if ($expStatus === 'expiring' && $renewalMonths > 0): ?>
                                             <span class="mx-2 text-slate-300">|</span>
-                                            <form method="post" class="inline" onsubmit="return confirm('确定续期该域名？将延长 <?= $renewalMonths ?> 个月有效期。')">
+                                            <form method="post" class="inline" onsubmit="return confirm('<?= __('user.domains.confirm_renew', ['months' => $renewalMonths]) ?>')">
                                                 <input type="hidden" name="action" value="renew">
                                                 <input type="hidden" name="domain_id" value="<?= (int) $row['id'] ?>">
-                                                <button type="submit" class="text-sm font-medium text-amber-600 hover:text-amber-800">续期</button>
+                                                <button type="submit" class="text-sm font-medium text-amber-600 hover:text-amber-800"><?= __('user.domains.renew') ?></button>
                                             </form>
                                         <?php endif; ?>
                                     </td>

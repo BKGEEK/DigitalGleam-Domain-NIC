@@ -5,7 +5,7 @@ if (!file_exists(__DIR__ . '/../../install/install.lock')) {
     exit;
 }
 
-$pageTitle = '后台登录';
+$pageTitle = __('admin.login.title');
 require __DIR__ . '/../../resource/css/header.php';
 require __DIR__ . '/../../resource/js/auth.php';
 
@@ -16,11 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = (string) ($_POST['password'] ?? '');
 
     if ($username === '' || $password === '') {
-        $error = '请输入账号和密码。';
+        $error = __('admin.login.error_empty');
     } elseif (auth_login_admin($username, $password)) {
         auth_redirect('/admin/dashboard/');
     } else {
-        $error = '登录失败，请确认账号、密码和账号状态。';
+        $error = __('admin.login.error_failed');
     }
 }
 ?>
@@ -28,10 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="page-wrap flex min-h-[calc(100vh-120px)] items-center py-12">
     <div class="grid w-full gap-8 lg:grid-cols-2">
         <section class="flex flex-col justify-center">
-            <span class="badge-brand w-fit">后台入口</span>
-            <h1 class="mt-6 text-4xl font-semibold tracking-tight text-slate-900">管理分发系统</h1>
+            <span class="badge-brand w-fit"><?= __('admin.login.badge') ?></span>
+            <h1 class="mt-6 text-4xl font-semibold tracking-tight text-slate-900"><?= __('admin.login.heading') ?></h1>
             <p class="mt-4 max-w-xl text-sm leading-7 text-slate-600">
-                用于审核申请、管理域名池、发布公告和查看系统状态。
+                <?= __('admin.login.desc') ?>
             </p>
         </section>
 
@@ -41,14 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             <form action="" method="post" class="space-y-5">
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">管理员账号</label>
-                    <input type="text" name="username" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="请输入管理员账号">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('admin.login.account') ?></label>
+                    <input type="text" name="username" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('admin.login.account_placeholder') ?>">
                 </div>
                 <div>
-                    <label class="mb-2 block text-sm font-medium text-slate-700">密码</label>
-                    <input type="password" name="password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="请输入密码">
+                    <label class="mb-2 block text-sm font-medium text-slate-700"><?= __('admin.login.password') ?></label>
+                    <input type="password" name="password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder="<?= __('admin.login.password_placeholder') ?>">
                 </div>
-                <button type="submit" class="btn-primary w-full justify-center">登录后台</button>
+                <button type="submit" class="btn-primary w-full justify-center"><?= __('admin.login.submit') ?></button>
             </form>
         </section>
     </div>
