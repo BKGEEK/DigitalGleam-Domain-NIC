@@ -134,6 +134,7 @@ if ($stmt && ($row = $stmt->fetch())) {
                         <a href="/whois/index.php" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.whois') ?></a>
                         <a href="#domain" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.domain_search') ?></a>
                         <a href="#notice" class="text-slate-600 hover:text-brand-600 transition-colors"><?= __('nav.announcement') ?></a>
+                        <?= lang_selector() ?>
                         <a href="/user/login/" class="rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"><?= __('nav.user_login') ?></a>
                     </div>
                 </div>

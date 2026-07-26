@@ -5,9 +5,10 @@ if (!file_exists(__DIR__ . '/../../install/install.lock')) {
     exit;
 }
 
-$pageTitle = __('admin.login.title');
 require __DIR__ . '/../../resource/css/header.php';
 require __DIR__ . '/../../resource/js/auth.php';
+
+$pageTitle = __('admin.login.title');
 
 $error = '';
 

@@ -24,6 +24,7 @@ function lang_load(): void
         $candidate = preg_replace('/[^a-zA-Z0-9\-]/', '', $_GET['lang']);
         if (in_array($candidate, $supported, true)) {
             $detected = $candidate;
+            setcookie('lang', $detected, time() + 86400 * 30, '/');
         }
     } elseif (!empty($_COOKIE['lang'])) {
         $candidate = preg_replace('/[^a-zA-Z0-9\-]/', '', $_COOKIE['lang']);

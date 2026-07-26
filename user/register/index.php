@@ -1,9 +1,10 @@
 <?php
 session_start();
 
-$pageTitle = __('user.register.title');
 require __DIR__ . '/../../resource/css/header.php';
 require __DIR__ . '/../../resource/js/auth.php';
+
+$pageTitle = __('user.register.title');
 require __DIR__ . '/../../mail/mailer.php';
 require __DIR__ . '/../../mail/template.php';
 
