@@ -1,5 +1,12 @@
 # 更新日志
 
+## 2026-07-26
+
+### Bug 修复
+- **`__()` 函数未定义错误**：`admin/login/index.php` 和 `user/register/index.php` 中 `$pageTitle = __(...)` 在 `require header.php` 之前调用，导致 `Fatal error`。已将 `require` 移至调用前
+- **首页缺少语言切换按钮**：根目录 `index.php` 未使用 `header.php`，内联导航栏中缺少 `<?= lang_selector() ?>`，已补上
+- **语言选择不持久化**：切换语言后仅通过 URL 参数 `?lang=xx` 传递，跳转页面后丢失。在 `lang/helper.php` 中识别到 `$_GET['lang']` 时自动写入 Cookie（30 天有效期），后续页面通过 Cookie 保持语言偏好
+
 ## 2026-07-23
 
 ### 新增功能
